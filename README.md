@@ -7,6 +7,7 @@ for the results of making use of this or related programs and any data
 directly or indirectly affected.
 
 Title: a XenServer simple backup script
+
 Package Contents: README (this file), VmBackup.py, example.cfg
 Version History:
  - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
