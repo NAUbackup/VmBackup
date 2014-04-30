@@ -14,7 +14,7 @@ Version History:
  - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
 
 ** DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS. **
- - NOTE: to accomplish the vm backup this script uses the following xe commands:
+ - To accomplish the vm backup this script uses the following xe commands:
   (a) vm-snapshot, (b) template-param-set, (c) vm-export, (d) vm-uninstall,
   where vm-uninstall is against the snapshot uuid.
 
