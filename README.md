@@ -44,8 +44,8 @@ OVERVIEW:
    SRs can be handled.
  - Backups can be run manually whenever desired, in addition to any scheduled backups.
  - The SR where VDI is located requires sufficient free space to hold a complete
-   snapshot of a VM. Snapshots created in the backup process are deleted 
-   when the vm-export has completed.
+   snapshot of a VM. The temporary snapshots created during the backup process are deleted 
+   after the vm-export has completed.
  - Optionally, if pool_db_backup=1 then the pool state backup occurs via
    the 'xe pool-dump-database' command. 
  - Optionally, compression of the vm-export file can be performed in the background 
