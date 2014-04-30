@@ -42,7 +42,9 @@ OVERVIEW:
  - Backups can be run from multiple XenServer hosts and from multiple pools and
    all be written to a common area, if desired. That way, local as well as pooled
    SRs can be handled.
- - Backups can be run manually whenever desired, in addition to any scheduled backups.
+ - In addition to any scheduled cron backups, the VmBackup.py script can be run manually 
+   as desired. However, it is important to keep in mind that the backup process does use
+   important DOM0 resourses so running a backup during heavy workloads should be avoided.
  - The SR where VDI is located requires sufficient free space to hold a complete
    snapshot of a VM. The temporary snapshots created during the backup process are deleted 
    after the vm-export has completed.
