@@ -44,7 +44,7 @@ OVERVIEW:
    SRs can be handled.
  - In addition to any scheduled cron backups, the VmBackup.py script can be run manually 
    as desired. However, it is important to keep in mind that the backup process does use
-   important DOM0 resourses so running a backup during heavy workloads should be avoided.
+   important DOM0 resources, so running a backup during heavy workloads should be avoided.
  - The SR where VDI is located requires sufficient free space to hold a complete
    snapshot of a VM. The temporary snapshots created during the backup process are deleted 
    after the vm-export has completed.
