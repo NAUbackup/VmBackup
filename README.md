@@ -89,6 +89,7 @@ NFS SETUP:
   - The NFS server holding the backup storage area will need to export its directory to
     each and every XenServer that will create backups. An entry in /etc/exports should
     appear similar to this:
+
     /snapshots myxenserver1.mycompany.org(rw,sync,no_root_squash)
   - In addition, rpcbind, mountd, lockd, statd and possibly also rquotad access should be
     granted to the NFS server from all XenServer hosts (for example, via tcpwrapper settings
