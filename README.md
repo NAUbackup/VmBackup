@@ -20,11 +20,12 @@ Version History:
 
 CONTENTS:
  - Overview
- - Command line usage
- - Command line parameters
- - Configuration file options
- - Script installation instructions
- - Additional features
+ - Command Line Usage
+ - Command Line Parameters
+ - NFS Setup
+ - Configuration File Options
+ - Script Installation Instructions
+ - Additional Features
  - VM Restore
  - Pool Restore
 
