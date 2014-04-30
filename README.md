@@ -30,7 +30,7 @@ CONTENTS:
 
 OVERVIEW:
  - The VmBackup.py script is run from a XenServer host and utilizes 
-   the native XenServer 'xe vm-export' command to backup VMs. 
+   the native XenServer 'xe vm-export' command to backup VMs (both Linux and Windows). 
  - The vm-export is actually run after a vm-snapshot has occurred 
    and this allows for backup while the VM is up and running.
  - These backup command techniques were originally discovered from anonymous
@@ -38,8 +38,16 @@ OVERVIEW:
  - During the backup of specified VMs, this script collects additional VM 
    metadata using the Citrix XenServer XenAPI. This additional information
    can be useful during VM restore situations.
+ - Backups can be run from multiple XenServer hosts and from multiple pools and
+   all be written to a common area, if desired. That way, local as well as pooled
+   SRs can be handled.
+ - Backups can be run manually whenever desired, in addition to any scheduled backups.
+ - The required free space at any given time is sufficient room to hold a complete
+   snapshot of a VM and all its associated VDIs plus 5 MB. Snapshots created in the
+   backup process are reliably deleted when the operation has completed.
  - Optionally, if pool_db_backup=1 then the pool state backup occurs via
-   the 'xe pool-dump-database' command.
+   the 'xe pool-dump-database' command. Alternatively, compression can be performed
+   asynchronously by the user creating, for example, an independent cron job.
 
 COMMAND LINE USAGE:
  Typical Usage w/ config file for multiple vm backups:
@@ -72,6 +80,18 @@ CONFIGURATION FILE OPTIONS (see example.cfg):
    vm-export=my-vm-name
    vm-export=my-second-vm
    vm-export=my-third-vm
+
+NFS SETUP:
+ 1. The NFS server holding the backup storage area will need to export its directory to
+    each and every XenServer that will create backups. An entry in /etc/exports should
+    appear similar to this:
+    /snapshots myxenserver1.mycompany.org(rw,sync,no_root_squash)
+ 2. In addition, rpcbind, mountd, lockd, statd and possibly also rquotad access should be
+    granted to the NFS server from all XenServer hosts (for example, via tcpwrapper settings
+    on the NFS server).
+    There should be no need to alter any settings on any of the XenServers unless if firewalls
+    are utilized anywere within the network chain, appropriate tunneling should be enabled as
+    required.
 
 SCRIPT INSTALLATION INSTRUCTIONS:
  1. Copy VmBackup.py to a XenServer local execution path.
