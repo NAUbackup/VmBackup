@@ -255,11 +255,12 @@ def main(session):
             continue
     
         # vm-export snapshot
-        xva_file = os.path.join(backup_dir, vm_name + '.xva')
         cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_uuid)
         if compress:
-            cmd = '%s filename="%s.gz" compress=true' % (cmd, xva_file) 
+            xva_file = os.path.join(backup_dir, vm_name + '.xva.gz')
+            cmd = '%s filename="%s" compress=true' % (cmd, xva_file)
         else:
+            xva_file = os.path.join(backup_dir, vm_name + '.xva')
             cmd = '%s filename="%s"' % (cmd, xva_file) 
         log('3.cmd: %s' % cmd)
         if run_log_out_wait_rc(cmd) == 0:
