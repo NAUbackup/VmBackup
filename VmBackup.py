@@ -62,7 +62,7 @@ def main(session):
 
     log('===========================')
     log('VmBackup running on %s ...' % server_name)
-    df_snapshots('Space before backups: df -k /snapshots')
+    df_snapshots('Space before backups: df -Th %s' % config['backup_dir'])
 
     if int(config['pool_db_backup']):
         log('*** begin backup_pool_metadata ***')
@@ -255,11 +255,12 @@ def main(session):
             continue
     
         # vm-export snapshot
-        xva_file = os.path.join(backup_dir, vm_name + '.xva')
         cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_uuid)
         if compress:
-            cmd = '%s filename="%s.gz" compress=true' % (cmd, xva_file) 
+            xva_file = os.path.join(backup_dir, vm_name + '.xva.gz')
+            cmd = '%s filename="%s" compress=true' % (cmd, xva_file)
         else:
+            xva_file = os.path.join(backup_dir, vm_name + '.xva')
             cmd = '%s filename="%s"' % (cmd, xva_file) 
         log('3.cmd: %s' % cmd)
         if run_log_out_wait_rc(cmd) == 0:
@@ -332,7 +333,7 @@ def main(session):
     ######################################################################
 
     log('===========================')
-    df_snapshots('Space status: df -k %s' % config['backup_dir'])
+    df_snapshots('Space status: df -Th %s' % config['backup_dir'])
 
     # gather a final VmBackup.py status
     summary = 'S:%s W:%s E:%s' % (success_cnt, warning_cnt, error_cnt)
@@ -477,7 +478,7 @@ def get_os_version(uuid):
 
 def df_snapshots(log_msg):
     log(log_msg)
-    f = os.popen('df -k /snapshots')    # default setting
+    f = os.popen('df -Th %s' % config['backup_dir'])
     for line in f.readlines():
         line = line.rstrip("\n")
         log(line)
