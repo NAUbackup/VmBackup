@@ -292,11 +292,10 @@ def main(session):
             # mark this a successful backup, note: this will 'touch' a file named 'success'
             # if backup size is greater than 80G, then nfs server side compression occurs
             if xva_size > 80:
+                log('*** LARGE FILE > 80G: %s : %sG' % (xva_file, xva_size))
                 # forced compression via background gzip (requires nfs server side script)
                 open('%s/success_compress' % backup_dir, 'w').close()
                 log('*** success_compress: %s : %sG' % (xva_file, xva_size))
-                if xva_size > 80:
-                    log('*** LARGE FILE > 80G: %s : %sG' % (xva_file, xva_size))
             else:
                 open('%s/success' % backup_dir, 'w').close()
                 log('*** success: %s : %sG' % (xva_file, xva_size))
