@@ -1,5 +1,4 @@
-NAUbackup / VmBackup
-====================
+# NAUbackup / VmBackup
 Copyright (C) 2009-2014, Northern Arizona University (NAU)
 Information Technology Services, Academic Computing SCAN division.
 Use of this software is "as-is".  NAU takes no responsibility
@@ -18,7 +17,7 @@ Version History:
   (a) vm-snapshot, (b) template-param-set, (c) vm-export, (d) vm-uninstall,
   where vm-uninstall is against the snapshot uuid.
 
-CONTENTS:
+## Contents
  - Overview
  - Command Line Usage
  - Command Line Parameters
@@ -29,7 +28,7 @@ CONTENTS:
  - VM Restore
  - Pool Restore
 
-OVERVIEW:
+## Overview
  - The VmBackup.py script is run from a XenServer host and utilizes the native
    XenServer 'xe vm-export' command to backup either Linux or Windows VMs. 
  - The vm-export is actually run after a vm-snapshot has occurred 
@@ -53,27 +52,28 @@ OVERVIEW:
  - Optionally, compression of the vm-export file can be performed in the background 
    after each VM backup is completed by an independent user supplied cron job.
 
-COMMAND LINE USAGE:
- Typical Usage w/ config file for multiple vm backups:
-    ./VmBackup.py <password> <config-file-path> 
-        [compress=True|False] [allow_extra_keys=True|False]
+## Command Line Usage
+
+Typical Usage w/ config file for multiple vm backups:
+
+    ./VmBackup.py <password> <config-file-path> [compress=True|False] [allow_extra_keys=True|False]
   
- Alternate Usage w/ vm name for single vm backup:
-    ./VmBackup.py <password> <vm-name> 
-        [compress=True|False] [allow_extra_keys=True|False]
+Alternate Usage w/ vm name for single vm backup:
 
- Crontab example:
-    10 0 * * 6 /usr/bin/python /snapshots/NAUbackup/VmBackup.py password 
-        /snapshots/NAUbackup/example.cfg >>/snapshots/NAUbackup/logs/VmBackup.log 2>&1
+    ./VmBackup.py <password> <vm-name> [compress=True|False] [allow_extra_keys=True|False]
 
-COMMAND LINE PARAMETERS:
- compress=True          -> will trigger the 'xe vm-export compress=true' option during backup.
- compress=False         -> (default) no immediate backup compression.
- allow_extra_keys=True  -> Other scripts may read the same config file with some extra params, 
+Crontab example:
+
+    10 0 * * 6 /usr/bin/python /snapshots/NAUbackup/VmBackup.py password /snapshots/NAUbackup/example.cfg >> /snapshots/NAUbackup/logs/VmBackup.log 2>&1
+
+### Command Line Parameters
+ - compress=True          -> will trigger the 'xe vm-export compress=true' option during backup.
+ - compress=False         -> (default) no immediate backup compression.
+ - allow_extra_keys=True  -> Other scripts may read the same config file with some extra params, 
                            if this is the case then ignore extra configuration params.
- allow_extra_keys=False -> (default) If extra keys exist, then an error will occur.
+ - allow_extra_keys=False -> (default) If extra keys exist, then an error will occur.
 
-CONFIGURATION FILE OPTIONS (see example.cfg):
+## Configuration File Options (see example.cfg):
  1. Take Xen Pool DB backup: 0=No, 1=Yes (default to 0=No)
    pool_db_backup=0
  2. How many backups to keep for each vm (default to 4)
@@ -85,7 +85,7 @@ CONFIGURATION FILE OPTIONS (see example.cfg):
    vm-export=my-second-vm
    vm-export=my-third-vm
 
-NFS SETUP:
+## NFS Setup
   - The NFS server holding the backup storage area will need to export its directory to
     each and every XenServer that will create backups. An entry in /etc/exports should
     appear similar to this:
@@ -98,7 +98,7 @@ NFS SETUP:
     are utilized anywere within the network chain, appropriate tunneling should be enabled as
     required.
 
-SCRIPT INSTALLATION INSTRUCTIONS:
+## Installation
  1. Copy VmBackup.py to a XenServer local execution path.
  2. From www.citrix.com/downloads - download the XenServer Software Development Kit 
      then copy file XenAPI.py into the same directory where VmBackup.py exists.
@@ -109,12 +109,12 @@ SCRIPT INSTALLATION INSTRUCTIONS:
      - then do some test VM restores to verify operation.
      - then edit crontab for regular execution cycles.
 
-FEATURE DISCUSSION:
+## Feature Discussion
  - A typical VmBackup.py run with vm-export specified creates a unique 
    VM backup directory %BACKUP_DIR%/vm-name/date-time/. This VM backup directory
    contains (a) the vm backup xva file and (b) additional VM metadata.
 
-ADDITIONAL FEATURES:
+## Additional Features
  - If running script from cron, then consider redirect to output file as the
    backup script output can be verbose and quite useful for error situations.
  - For each VM that is backed up it creates a unique backup directory 
@@ -130,14 +130,15 @@ ADDITIONAL FEATURES:
    status_log file. This file is good for a bird's eye view of the backup run and
    optionally can be used by other scripts for additional processing requirements.
 
-VM RESTORE:
+## Restore
+### VM Restore
  - To restore VM from backup, use the 'xe vm-import' command.
    Use 'xe help vm-import' for parameter options. In particular, attention
    should be paid to the "preserve" option, which if specified as
    "preserve=true" will re-create as many of the original settings as
    possible, including in particular the network and MAC addresses.
 
-POOL RESTORE:
+### Pool Restore
  - In the situation where the pool is corrupt and no hosts will start in the
    pool then it may be necessary to restore and rebuild the XenServer pool. 
    This decision should be carefully reviewed with advice from Citrix Support. 
