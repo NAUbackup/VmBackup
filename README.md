@@ -12,10 +12,9 @@ Package Contents: README (this file), VmBackup.py, example.cfg
 Version History:
  - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
 
-** DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS. **
- - To accomplish the vm backup this script uses the following xe commands:
-  (a) vm-snapshot, (b) template-param-set, (c) vm-export, (d) vm-uninstall,
-  where vm-uninstall is against the snapshot uuid.
+**DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS.**
+
+ - To accomplish the vm backup this script uses the following xe commands: (a) vm-snapshot, (b) template-param-set, (c) vm-export, (d) vm-uninstall, where vm-uninstall is against the snapshot uuid.
 
 ## Contents
  - Overview
@@ -30,7 +29,7 @@ Version History:
 
 ## Overview
  - The VmBackup.py script is run from a XenServer host and utilizes the native
-   XenServer 'xe vm-export' command to backup either Linux or Windows VMs. 
+   XenServer `xe vm-export` command to backup either Linux or Windows VMs. 
  - The vm-export is actually run after a vm-snapshot has occurred 
    and this allows for backup while the VM is up and running.
  - These backup command techniques were originally discovered from anonymous
@@ -48,7 +47,7 @@ Version History:
    snapshot of a VM. The temporary snapshots created during the backup process are deleted 
    after the vm-export has completed.
  - Optionally, if pool_db_backup=1 then the pool state backup occurs via
-   the 'xe pool-dump-database' command. 
+   the `xe pool-dump-database` command. 
  - Optionally, compression of the vm-export file can be performed in the background 
    after each VM backup is completed by an independent user supplied cron job.
 
@@ -67,11 +66,11 @@ Crontab example:
     10 0 * * 6 /usr/bin/python /snapshots/NAUbackup/VmBackup.py password /snapshots/NAUbackup/example.cfg >> /snapshots/NAUbackup/logs/VmBackup.log 2>&1
 
 ### Command Line Parameters
- - compress=True          -> will trigger the 'xe vm-export compress=true' option during backup.
- - compress=False         -> (default) no immediate backup compression.
- - allow_extra_keys=True  -> Other scripts may read the same config file with some extra params, 
+ - *compress=True*          -> will trigger the 'xe vm-export compress=true' option during backup.
+ - *compress=False*         -> (default) no immediate backup compression.
+ - *allow_extra_keys=True*  -> Other scripts may read the same config file with some extra params, 
                            if this is the case then ignore extra configuration params.
- - allow_extra_keys=False -> (default) If extra keys exist, then an error will occur.
+ - *allow_extra_keys=False* -> (default) If extra keys exist, then an error will occur.
 
 ## Configuration File Options (see example.cfg):
  1. Take Xen Pool DB backup: 0=No, 1=Yes (default to 0=No)
@@ -90,7 +89,8 @@ Crontab example:
     each and every XenServer that will create backups. An entry in /etc/exports should
     appear similar to this:
 
-    /snapshots myxenserver1.mycompany.org(rw,sync,no_root_squash)
+    `/snapshots myxenserver1.mycompany.org(rw,sync,no_root_squash)`
+    
   - In addition, rpcbind, mountd, lockd, statd and possibly also rquotad access should be
     granted to the NFS server from all XenServer hosts (for example, via tcpwrapper settings
     on the NFS server).
@@ -118,29 +118,21 @@ Crontab example:
  - If running script from cron, then consider redirect to output file as the
    backup script output can be verbose and quite useful for error situations.
  - For each VM that is backed up it creates a unique backup directory 
-   %BACKUP_DIR%/vm-name/date-time/.
+   *%BACKUP_DIR%/vm-name/date-time/*.
  - Associated VM metadata is stored in text files inside the
-   %BACKUP_DIR%/vm-name/date-time/ location.
+   *%BACKUP_DIR%/vm-name/date-time/* location.
  - The oldest %BACKUP_DIR%/vm-name/date-time/ entries are deleted when the number of 
-   backups for a vm exceeds %MAX_BACKUPS%.
+   backups for a vm exceeds `%MAX_BACKUPS%`.
  - Before each new VM backup begins then a check is made to ensure that the last 
    VM backup was successful. If it was not successful then the previous backup directory
-   will be deleted so that %MAX_BACKUPS% will not delete older 'successful' backups.
+   will be deleted so that `%MAX_BACKUPS%` will not delete older 'successful' backups.
  - If the script is run with a config file, then extra logging occurs in the
    status_log file. This file is good for a bird's eye view of the backup run and
    optionally can be used by other scripts for additional processing requirements.
 
 ## Restore
 ### VM Restore
- - To restore VM from backup, use the 'xe vm-import' command.
-   Use 'xe help vm-import' for parameter options. In particular, attention
-   should be paid to the "preserve" option, which if specified as
-   "preserve=true" will re-create as many of the original settings as
-   possible, including in particular the network and MAC addresses.
+To restore VM from backup, use the `xe vm-import` command. Use `xe help vm-import` for parameter options. In particular, attention should be paid to the "preserve" option, which if specified as `preserve=true` will re-create as many of the original settings as possible, including in particular the network and MAC addresses.
 
 ### Pool Restore
- - In the situation where the pool is corrupt and no hosts will start in the
-   pool then it may be necessary to restore and rebuild the XenServer pool. 
-   This decision should be carefully reviewed with advice from Citrix Support. 
-   Consult the Citrix XenServer Administrator's Guide chapter 8 and review
-   sections that discuss the 'xe pool-restore-database' command.
+In the situation where the pool is corrupt and no hosts will start in the pool then it may be necessary to restore and rebuild the XenServer pool. This decision should be carefully reviewed with advice from Citrix Support. Consult the Citrix XenServer Administrator's Guide chapter 8 and review sections that discuss the 'xe pool-restore-database' command.
