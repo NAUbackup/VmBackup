@@ -35,6 +35,7 @@ from os.path import join
 DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
+BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
 
 config = {}
 expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'vm-export']
@@ -290,9 +291,9 @@ def main(session):
 
         if (this_success):
             # mark this a successful backup, note: this will 'touch' a file named 'success'
-            # if backup size is greater than 80G, then nfs server side compression occurs
-            if xva_size > 80:
-                log('*** LARGE FILE > 80G: %s : %sG' % (xva_file, xva_size))
+            # if backup size is greater than 60G, then nfs server side compression occurs
+            if xva_size > 60:
+                log('*** LARGE FILE > 60G: %s : %sG' % (xva_file, xva_size))
                 # forced compression via background gzip (requires nfs server side script)
                 open('%s/success_compress' % backup_dir, 'w').close()
                 log('*** success_compress: %s : %sG' % (xva_file, xva_size))
@@ -364,8 +365,10 @@ def get_backup_dir(base_path):
             return False
 
     date = datetime.datetime.today()
-    backup_dir = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)' \
+    #backup_dir = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)' 
+    backup_dir = BACKUP_DIR_PATTERN \
     % (base_path, date.year, date.month, date.day, date.hour, date.minute, date.second)
+    print 'backup_dir: %s' % backup_dir
 
     if not os.path.exists(backup_dir):
         # Create new dir
