@@ -108,7 +108,7 @@ Crontab example:
  4. Edit the example configuration file for the appropriate settings.
  5. Review VmBackup.py code.
      - update hard coded default values at the top of the script.
-     - enable optional status email if desired.
+     - enable optional status email if desired. This requires user configure / uncomment code lines in VmBackup.py and in mailer_opt.py.
  6. Command line run VmBackup.py from XenServer host against test VM's
      - then do some test VM restores to verify operation.
      - then edit crontab for regular execution cycles.

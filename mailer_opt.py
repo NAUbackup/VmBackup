@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 # quick and dirty python mailer, called by VmBackup.py
-# *** called by weekly.sh to email report ***
+# configure / uncomment the smtp_server / from_addr lines.
 
 import sys, smtplib
 from email.MIMEText import MIMEText
