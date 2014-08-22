@@ -106,7 +106,9 @@ Crontab example:
      then copy file XenAPI.py into the same directory where VmBackup.py exists.
  3. Setup a %BACKUP_DIR% path (typically NFS) for VM backup storage.
  4. Edit the example configuration file for the appropriate settings.
- 5. Review VmBackup.py code and update hard coded default values at the top of the script.
+ 5. Review VmBackup.py code.
+     - update hard coded default values at the top of the script.
+     - enable optional status email if desired.
  6. Command line run VmBackup.py from XenServer host against test VM's
      - then do some test VM restores to verify operation.
      - then edit crontab for regular execution cycles.

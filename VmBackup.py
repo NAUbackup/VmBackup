@@ -9,6 +9,7 @@
 # Title: a XenServer simple vm backup script
 # Package Contents: README, VmBackup.py (this file), example.cfg
 # Version History
+# - v2.1 2014/08/22 Added email status option
 # - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
 
 # ** DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS. **
@@ -30,13 +31,15 @@ from subprocess import PIPE
 from subprocess import STDOUT
 from os.path import join
 
-#############################
+############################# HARD CODED DEFAULTS
 # modify these hard coded default values, only used if not specified in config file
 DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
 STATUS_LOG = '/snapshots/NAUbackup/status.log'
+
+############################# OPTIONAL
 # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
 #MAILER_SCRIPT_OPT = '/snapshots/NAUbackup/mailer_opt.py' # if mailer is used, then update mailer_opt.py
 #MAILER_TO_OPT = 'your-email@your-domain'
