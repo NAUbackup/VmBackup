@@ -36,12 +36,15 @@ DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
+STATUS_LOG = '/snapshots/NAUbackup/status.log'
+# note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
+#MAILER_SCRIPT_OPT = '/snapshots/NAUbackup/mailer_opt.py' # if mailer is used, then update mailer_opt.py
+#MAILER_TO_OPT = 'your-email@your-domain'
 
 config = {}
 expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'vm-export']
 message = ''
 xe_path = '/opt/xensource/bin' 
-status_log = '/snapshots/NAUbackup/status.log'
 
 def main(session): 
 
@@ -340,14 +343,23 @@ def main(session):
     if (not success):
         if config_specified:
             status_log_end(server_name, 'ERROR,%s' % summary)
+            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
+            #os.system("/usr/bin/env python %s %s 'ERROR VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **ERRORS DETECTED** - %s' % summary)
     elif (warning):
         if config_specified:
             status_log_end(server_name, 'WARNING,%s' % summary)
+            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
+            #os.system("/usr/bin/env python %s %s 'Warning VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **Warning(s)** - %s' % summary)
     else:
         if config_specified:
             status_log_end(server_name, 'SUCCESS,%s' % summary)
+            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
+            #os.system("/usr/bin/env python %s %s 'Success VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - Success - %s' % summary)
 
     # done with main()
@@ -565,15 +577,15 @@ def config_print():
 
 def status_log_begin(server):
     rec_begin = '%s,vmbackup.py,%s,begin\n' % (fmtDateTime(), server)
-    open(status_log,'a',0).write(rec_begin)
+    open(STATUS_LOG,'a',0).write(rec_begin)
 
 def status_log_end(server, status):
     rec_end = '%s,vmbackup.py,%s,end,%s\n' % (fmtDateTime(), server, status)
-    open(status_log,'a',0).write(rec_end)
+    open(STATUS_LOG,'a',0).write(rec_end)
 
 def status_log_vm_export(server, status):
     rec_end = '%s,vm-export,%s,end,%s\n' % (fmtDateTime(), server, status)
-    open(status_log,'a',0).write(rec_end)
+    open(STATUS_LOG,'a',0).write(rec_end)
 
 def fmtDateTime():
     date = datetime.datetime.today()

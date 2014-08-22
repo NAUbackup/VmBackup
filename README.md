@@ -5,11 +5,12 @@ Use of this software is "as-is".  NAU takes no responsibility
 for the results of making use of this or related programs and any data
 directly or indirectly affected.
 
-Title: a XenServer simple backup script
+**Title:** a XenServer simple backup script
 
-Package Contents: README (this file), VmBackup.py, example.cfg
+**Package Contents:** README.md (this file), VmBackup.py, example.cfg, mailer_opt.py
 
-Version History:
+## Version History:
+ - v2.1 2014/08/22 Added email status option
  - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
 
 **DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS.**
@@ -50,6 +51,7 @@ Version History:
    the `xe pool-dump-database` command. 
  - Optionally, compression of the vm-export file can be performed in the background 
    after each VM backup is completed by an independent user supplied cron job.
+ - Optionally, status email can be sent by configuring optional VmBackup.py & mailer_opt.py parameters.
 
 ## Command Line Usage
 
@@ -129,6 +131,7 @@ Crontab example:
  - If the script is run with a config file, then extra logging occurs in the
    status_log file. This file is good for a bird's eye view of the backup run and
    optionally can be used by other scripts for additional processing requirements.
+ - If optional variables are configured in VmBackup.py and mailer_opt.py, then status email will be sent.
 
 ## Restore
 ### VM Restore
