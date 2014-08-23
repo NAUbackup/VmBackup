@@ -7,7 +7,7 @@
 # directly or indirectly affected.
 
 # Title: a XenServer simple vm backup script
-# Package Contents: README, VmBackup.py (this file), example.cfg
+# Package Contents: README.md, VmBackup.py (this file), example.cfg, mailer_opt.py
 # Version History
 # - v2.1 2014/08/22 Added email status option
 # - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
@@ -40,9 +40,10 @@ BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
 STATUS_LOG = '/snapshots/NAUbackup/status.log'
 
 ############################# OPTIONAL
-# note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
-#MAILER_SCRIPT_OPT = '/snapshots/NAUbackup/mailer_opt.py' # if mailer is used, then update mailer_opt.py
-#MAILER_TO_OPT = 'your-email@your-domain'
+# optional email may be triggered by configure next 3 lines then find MAIL_ and uncommenting out the desired lines
+MAIL_TO_ADDR = 'your-email@your-domain'
+MAIL_FROM_ADDR = 'your-from-address@your-domain'
+MAIL_SMTP_SERVER = 'your-mail-server'
 
 config = {}
 expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'vm-export']
@@ -346,22 +347,22 @@ def main(session):
     if (not success):
         if config_specified:
             status_log_end(server_name, 'ERROR,%s' % summary)
-            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
-            #os.system("/usr/bin/env python %s %s 'ERROR VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            # note: optional email may be enabled by uncommenting out the next two lines
+            #send_email("%s 'ERROR VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **ERRORS DETECTED** - %s' % summary)
     elif (warning):
         if config_specified:
             status_log_end(server_name, 'WARNING,%s' % summary)
-            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
-            #os.system("/usr/bin/env python %s %s 'Warning VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            # note: optional email may be enabled by uncommenting out the next two lines
+            #send_email("%s 'Warning VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **Warning(s)** - %s' % summary)
     else:
         if config_specified:
             status_log_end(server_name, 'SUCCESS,%s' % summary)
-            # note: optional email may be triggered by uncommenting out the next two lines and then find MAILER_
-            #os.system("/usr/bin/env python %s %s 'Success VmBackup.py' %s" % (MAILER_SCRIPT_OPT, MAILER_TO_OPT, STATUS_LOG))
+            # note: optional email may be enabled by uncommenting out the next two lines
+            #send_email("%s 'Success VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - Success - %s' % summary)
 
@@ -499,6 +500,19 @@ def df_snapshots(log_msg):
     for line in f.readlines():
         line = line.rstrip("\n")
         log(line)
+
+def send_email(to, subject, body_fname):
+
+    message = open('%s' % body_fname, 'r').read()
+
+    msg = MIMEText(message)
+    msg['subject'] = subject
+    msg['From'] = MAIL_FROM_ADDR
+    msg['To'] = to
+
+    s = smtplib.SMTP(MAIL_SMTP_SERVER)
+    s.sendmail(from_addr, to.split(','), msg.as_string())
+    s.quit()
 
 def is_xe_master():
     # test to see if we are running on xe master
