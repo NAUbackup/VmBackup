@@ -7,7 +7,7 @@
 # directly or indirectly affected.
 
 # Title: a XenServer simple vm backup script
-# Package Contents: README.md, VmBackup.py (this file), example.cfg, mailer_opt.py
+# Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
 # - v2.1 2014/08/22 Added email status option
 # - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)

@@ -7,7 +7,7 @@ directly or indirectly affected.
 
 **Title:** a XenServer simple backup script
 
-**Package Contents:** README.md (this file), VmBackup.py, example.cfg, mailer_opt.py
+**Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
  - v2.1 2014/08/22 Added email status option
@@ -51,7 +51,7 @@ directly or indirectly affected.
    the `xe pool-dump-database` command. 
  - Optionally, compression of the vm-export file can be performed in the background 
    after each VM backup is completed by an independent user supplied cron job.
- - Optionally, status email can be sent by configuring optional VmBackup.py & mailer_opt.py parameters.
+ - Optionally, status email can be sent by configuring optional VmBackup.py variables.
 
 ## Command Line Usage
 
@@ -108,7 +108,7 @@ Crontab example:
  4. Edit the example configuration file for the appropriate settings.
  5. Review VmBackup.py code.
      - update hard coded default values at the top of the script.
-     - enable optional status email if desired. This requires user configure / uncomment code lines in VmBackup.py and in mailer_opt.py.
+     - if desired, enable optional status email. This requires user configure / uncomment code lines in VmBackup.py.
  6. Command line run VmBackup.py from XenServer host against test VM's
      - then do some test VM restores to verify operation.
      - then edit crontab for regular execution cycles.
@@ -133,7 +133,10 @@ Crontab example:
  - If the script is run with a config file, then extra logging occurs in the
    status_log file. This file is good for a bird's eye view of the backup run and
    optionally can be used by other scripts for additional processing requirements.
- - If optional variables are configured in VmBackup.py and mailer_opt.py, then status email will be sent.
+
+## Optional Features
+ - VmBackup.py does not include email status by default since there is another component of NAUbackup that calls VmBackup and handles email from that framework.
+ - To configure email in VmBackup.py then follow the comments in the script to configure and uncomment out the desired send_email lines.
 
 ## Restore
 ### VM Restore
