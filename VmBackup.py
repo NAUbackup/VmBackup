@@ -36,12 +36,14 @@ from os.path import join
 DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
+# note - some NAS file servers may fail with ':', so change to your desired format
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
 STATUS_LOG = '/snapshots/NAUbackup/status.log'
 
 ############################# OPTIONAL
-# optional email may be triggered by configure next 3 lines then find MAIL_ and uncommenting out the desired lines
+# optional email may be triggered by configure next 3 parameters then find MAIL_ and uncommenting out the desired lines
 MAIL_TO_ADDR = 'your-email@your-domain'
+# note if MAIL_TO_ADDR has ipaddr then you may need to change the smtplib.SMTP() call
 MAIL_FROM_ADDR = 'your-from-address@your-domain'
 MAIL_SMTP_SERVER = 'your-mail-server'
 
@@ -510,6 +512,8 @@ def send_email(to, subject, body_fname):
     msg['From'] = MAIL_FROM_ADDR
     msg['To'] = to
 
+    # note if using an ipaddress in MAIL_SMTP_SERVER, 
+    # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
     s = smtplib.SMTP(MAIL_SMTP_SERVER)
     s.sendmail(from_addr, to.split(','), msg.as_string())
     s.quit()
