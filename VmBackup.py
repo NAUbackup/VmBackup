@@ -705,3 +705,4 @@ if __name__ == '__main__':
         log('***ERROR EXCEPTION - %s' % sys.exc_info()[0])
         log('***ERROR NOTE: see VmBackup output for details')
         raise
+    session.logout
