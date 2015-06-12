@@ -63,7 +63,7 @@ Alternate Usage w/ vm name for single vm backup:
 
     ./VmBackup.py <password> <vm-name> [compress=True|False] [allow_extra_keys=True|False]
 
-Crontab example (most easily implemented as user 'root' with the command "crontab -e":
+Crontab example (most easily implemented as user 'root' with the command "crontab -e"):
 
     10 0 * * 6 /usr/bin/python /snapshots/NAUbackup/VmBackup.py password /snapshots/NAUbackup/example.cfg >> /snapshots/NAUbackup/logs/VmBackup.log 2>&1
 
