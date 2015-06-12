@@ -37,8 +37,8 @@ DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 # for NFS mounts, use the following syntax:
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
-# For CIFS mounts, comment out the above line and use insteadthe following syntax, mathing what
-# is configuration file:
+# For CIFS mounts, comment out the above line and instead, use the following syntax, matching your
+# full export path:
 ## DEFAULT_BACKUP_DIR = '\snapshots\BACKUPS'
 # note - some NAS file servers may fail with the delimiter ':', so change to your desired format:
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
