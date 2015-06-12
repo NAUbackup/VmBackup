@@ -35,8 +35,12 @@ from os.path import join
 # modify these hard coded default values, only used if not specified in config file
 DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
+# for NFS mounts, use the following syntax:
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
-# note - some NAS file servers may fail with ':', so change to your desired format
+# For CIFS mounts, comment out the above line and use insteadthe following syntax, mathing what
+# is configuration file:
+## DEFAULT_BACKUP_DIR = '\snapshots\BACKUPS'
+# note - some NAS file servers may fail with the delimiter ':', so change to your desired format:
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
 STATUS_LOG = '/snapshots/NAUbackup/status.log'
 
