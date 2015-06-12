@@ -1,5 +1,5 @@
 # NAUbackup / VmBackup
-Copyright (C) 2009-2014, Northern Arizona University (NAU)
+Copyright (C) 2009-2015, Northern Arizona University (NAU)
 Information Technology Services, Academic Computing SCAN division.
 Use of this software is "as-is".  NAU takes no responsibility
 for the results of making use of this or related programs and any data
@@ -63,7 +63,7 @@ Alternate Usage w/ vm name for single vm backup:
 
     ./VmBackup.py <password> <vm-name> [compress=True|False] [allow_extra_keys=True|False]
 
-Crontab example:
+Crontab example (most easily implemented as user 'root' with the command "crontab -e":
 
     10 0 * * 6 /usr/bin/python /snapshots/NAUbackup/VmBackup.py password /snapshots/NAUbackup/example.cfg >> /snapshots/NAUbackup/logs/VmBackup.log 2>&1
 
@@ -99,6 +99,13 @@ Crontab example:
   - There should be no need to alter any settings on any of the XenServers unless if firewalls
     are utilized anywere within the network chain, appropriate tunneling should be enabled as
     required.
+
+## CIFS (SMB) Setup
+  - Similar to NFS, a CIFS storage area to hold the backup storage will need to be configured on
+    either a Windows server or CIFS-compatible storage device and the corresponding mount area made
+    available to all the XenServer hosts.
+  - Again, since XenServer natively supports CIFS connections, no firewall modifications should be
+    necessary on the XenServer end.
 
 ## Installation
  1. Copy VmBackup.py to a XenServer local execution path.
