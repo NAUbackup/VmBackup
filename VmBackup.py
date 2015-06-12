@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (C) 2009-2014, Northern Arizona University (NAU)
+# Copyright (C) 2009-2015, Northern Arizona University (NAU)
 # Information Technology Services, Academic Computing SCAN division.
 # Use of this software is "as-is".  NAU takes no responsibility
 # for the results of making use of this or related programs and any data
