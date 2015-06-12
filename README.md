@@ -103,7 +103,8 @@ Crontab example (most easily implemented as user 'root' with the command "cronta
 ## CIFS (SMB) Setup
   - Similar to NFS, a CIFS storage area to hold the backup storage will need to be configured on
     either a Windows server or CIFS-compatible storage device and the corresponding mount area made
-    available to all the XenServer hosts.
+    available to all the XenServer hosts. In this case, the variable DEFAULT_BACKUP_DIR in the
+    VmBackup.py script should be modified according to the instructions given within that file.
   - Again, since XenServer natively supports CIFS connections, no firewall modifications should be
     necessary on the XenServer end.
 
