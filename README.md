@@ -22,6 +22,7 @@ directly or indirectly affected.
  - Command Line Usage
  - Command Line Parameters
  - NFS Setup
+ - CIFS (SMB) Setup
  - Configuration File Options
  - Script Installation Instructions
  - Additional Features
