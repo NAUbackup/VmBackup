@@ -26,10 +26,11 @@
 # Usage w/ config file for multiple vm backups:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, email
 from subprocess import PIPE
 from subprocess import STDOUT
 from os.path import join
+from email.MIMEText import MIMEText
 
 ############################# HARD CODED DEFAULTS
 # modify these hard coded default values, only used if not specified in config file
@@ -354,21 +355,21 @@ def main(session):
         if config_specified:
             status_log_end(server_name, 'ERROR,%s' % summary)
             # note: optional email may be enabled by uncommenting out the next two lines
-            #send_email("%s 'ERROR VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
+            #send_email(MAIL_TO_ADDR,'ERROR VmBackup.py', STATUS_LOG)
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **ERRORS DETECTED** - %s' % summary)
     elif (warning):
         if config_specified:
             status_log_end(server_name, 'WARNING,%s' % summary)
             # note: optional email may be enabled by uncommenting out the next two lines
-            #send_email("%s 'Warning VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
+            #send_email(MAIL_TO_ADDR,'WARNING VmBackup.py', STATUS_LOG)
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - **Warning(s)** - %s' % summary)
     else:
         if config_specified:
             status_log_end(server_name, 'SUCCESS,%s' % summary)
             # note: optional email may be enabled by uncommenting out the next two lines
-            #send_email("%s 'Success VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
+            #send_email(MAIL_TO_ADDR,'SUCCESS VmBackup.py', STATUS_LOG)
             #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
         log('VmBackup ended - Success - %s' % summary)
 
@@ -519,7 +520,7 @@ def send_email(to, subject, body_fname):
     # note if using an ipaddress in MAIL_SMTP_SERVER, 
     # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
     s = smtplib.SMTP(MAIL_SMTP_SERVER)
-    s.sendmail(from_addr, to.split(','), msg.as_string())
+    s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
     s.quit()
 
 def is_xe_master():
