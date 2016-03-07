@@ -17,8 +17,6 @@ Copyright (C) 2016  Northern Arizona University
 
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
-[toc]
-
 ## Version History:
  - v3.0 2016/03/04 Added vdi-export and VM prefix wildcards.
  - v2.1 2014/08/22 Added email status option.
