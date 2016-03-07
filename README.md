@@ -329,7 +329,7 @@ The number of VM backups saved is based upon the config max_backups value. For e
 As each new VM backup begins, then a check is made to ensure that the last VM backup was successful. If it was not successful then the previous failed backup directory will be deleted.
 
 #### VM Backup File Types
-The vm backup file has one of three possible formats, (a) <vm-name>.vxa which is created from a vm-export command, (b) <vm-name>.raw which is created from vdi-export and vdi-export-form=raw, or (c) <vm-name>.vhd which is created from vdi-export and vdi-export-form=vhd.
+The vm backup file has one of three possible formats, (a) vm-name.vxa which is created from a vm-export command, (b) vm-name.raw which is created from vdi-export and vdi-export-form=raw, or (c) vm-name.vhd which is created from vdi-export and vdi-export-form=vhd.
 
 #### Additional VM Metadata
 For each backup directory, there is a dump of selected XenServer VM metadata. This information can be useful in certain recovery situations.
