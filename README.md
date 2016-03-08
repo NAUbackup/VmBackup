@@ -47,10 +47,10 @@ These new features have been added:
    
    - The `xe vdi-export` and `xe vdi-import` commands are a relatively new XenServer function and as such the XenServer usage documentation is still evolving. **If you choose to use the vdi-export option, then it is imperative that you verify the restore process with your particular VM's in your environment.** This feature has been available for quite a few releases, however it has only been verified on XenServer 6.5 and the early versions of XenServer Dundee.
    
- - New **VM pattern wildcard** option for both vm-export and vdi-export. This is a powerful feature if you utilize a VM prefix naming convention. Syntax examples include: vm-export=PROD* and vdi-export=PRD-with-many-disks*
- - New configuration **exclude=vm_name** option to filter out VMs from the vm-export and vdi-export VM selection list. Currently, the exclude parameter must specify a specific vm_name and can not be a VM pattern wildcard.
+ - New **VM prefix wildcard** option for both vm-export and vdi-export. This is a powerful feature if you utilize a VM prefix naming convention. Syntax examples include: vm-export=PROD* and vdi-export=PRD-with-many-disks*
+ - New configuration **exclude=vm_name** option to filter out VMs from the vm-export and vdi-export VM selection list. Currently, the exclude parameter must specify a specific vm_name and can not be a VM prefix wildcard.
  - New command line **preview** option. This will show all config parameters, VMs have been selected for vm-export and vdi-export. If there are any configuration errors then they will be flagged.
- - New command line **vm-selector** options include vm-export, vdi-export, and VM pattern wildcard options.
+ - New command line **vm-selector** options include vm-export, vdi-export, and VM prefix wildcard options.
  - VM export and VDI export now supports **VM names with spaces**. 
    - Note all vm-export, vdi-export, exclude and VM-selectors continue to be **case sensitive**. 
  - The command line password can now be obscured into a password file. See "VmBackup.py help" on how to use and create the password file.  
@@ -104,7 +104,7 @@ These new features have been added:
   		<password|password-file> - xenserver password or obscured password stored in password-file
   		<config-file|vm-selector> - several options:
     		config-file - a common choice for production crontab execution
-    		vm-selector - a single vm name or vm pattern wildcard that defaults to vm-export
+    		vm-selector - a single vm name or vm prefix wildcard that defaults to vm-export
     			note with vm-selector then config defaults are set from VmBackup.py default constantants
     		vm-export=vm-selector  - explicit vm-export
     		vdi-export=vm-selector - explicit vdi-export
@@ -312,7 +312,7 @@ Typically you will want to run the cron with an input config file and redirected
 
 The vm-export and vdi-export each have an associated process list where each entry is of the form vm-name:max_backups. The :max_backups is optional, and if specified then is the maximum number of backups to maintain for this vm-name. Otherwise, the global max_backups is in effect for the given vm-name. At the completion of every successful VM vm-export/vdi-operation, the oldest backup(s) are deleted using the  in effect vm-name:max_backups value.
 
-The following VM selection operations apply for both the vm-export and vdi-export; (1) load all single vm-name:max_backups with no wildcard into the associated process list, (2) for any vm-pattern*:max_backups, query the XenServer and load each applicable vm-name into the associated process list and do not replace the VMs from step 1, then finally (3) remove any excluded VMs from the process list VMs. By using the `preview` option then the scope of the given VmBackup run is clearly defined.
+The following VM selection operations apply for both the vm-export and vdi-export; (1) load all single vm-name:max_backups with no wildcard into the associated process list, (2) for any vm-prefix*:max_backups, query the XenServer and load each applicable vm-name into the associated process list and do not replace the VMs from step 1, then finally (3) remove any excluded VMs from the process list VMs. By using the `preview` option then the scope of the given VmBackup run is clearly defined.
 
 For any individual VmBackup.py run, then any single VM should not be in both vm-export and vdi-export process lists, otherwise an error will occur. The convention is that a VM is backed up with a vm-export or a vdi-export, but not both. If at some point in time a VM grows in number of /dev/xvdX disks where it is required to switch from vm-export to vdi-export, then the same /snapshots/BACKUPS/vm-name structure continues. Since in this case the backups are ordered by date with a mix of vdi-export and older vm-export backups, then eventually the vm-export backups will be deleted. One technique to save any of the older vm-exports from automatically deleting is to simply rename /snapshots/BACKSUPS/vm-name to /snapshots/BACKSUPS/vm-name_xva at time of the conversion to vdi-export.
 
