@@ -1149,7 +1149,7 @@ def usage_help():
     print '  <password|password-file> - xenserver password or obscured password stored in password-file'
     print '  <config-file|vm-selector> - several options:'
     print '    config-file - a common choice for production crontab execution'
-    print '    vm-selector - a single vm name or vm pattern wildcard that defaults to vm-export'
+    print '    vm-selector - a single vm name or vm prefix wildcard that defaults to vm-export'
     print '      note with vm-selector then config defaults are set from VmBackup.py default constantants'
     print '    vm-export=vm-selector  - explicit vm-export'
     print '    vdi-export=vm-selector - explicit vdi-export'
@@ -1302,7 +1302,7 @@ if __name__ == '__main__':
             print 'ERROR in config_load, consider ignore_extra_keys=true'
             sys.exit(1)
     else:
-        # no config file exists - so cfg_file is actual vm_name/pattern
+        # no config file exists - so cfg_file is actual vm_name/prefix
         config_specified = 0
         cmd_option = 'vm-export' # default
         cmd_vm_name = cfg_file
