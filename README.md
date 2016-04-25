@@ -72,6 +72,7 @@ These new features have been added:
 6. Install the XenServer Software Development Kit from www.citrix.com/downloads - download the XenServer and copy file XenAPI.py into the same directory where VmBackup.py exists.
    - To verfy XenApi, execute VmBackup with a valid password and some simple vm-name.
    - Example: ./VmBackup.py password vm-name preview 
+   - Note: if password has any special characters, then escape with back slash: ./VmBackup.py pass\$word vm-name
 7. Follow some VmBackup usage examples in the next section and try some examples with your VMs. Initially use the `preview` option, followed by a non-preview execution to actually see the VM export process. If you have a test XenServer environment, then utilize this for test verification.
 8. VM Recovery testing is an important part of the setup, see later section. Become familiar with the /snapshots/BACKUPS/vm-name directory structure and file contents, also in later section. After backing up some VMs then restore them on a test system and verify VM functionality.
 9. Plan your backup strategy, such as weekly, bi-monthly, monthly frequencies. How many copies of each backup do you want to keep? How long do your backup configurations take to execute and does this fit in with your XenServer processing priorities?
