@@ -360,24 +360,63 @@ def main(session):
             # next vm
             continue
     
-        # vm-export vm-snapshot
-        cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_vm_uuid)
-        if compress:
-            full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva.gz')
-            cmd = '%s filename="%s" compress=true' % (cmd, full_path_backup_file)
+        vdi_cf = get_custom_field(vm_object, 'vdi_backup')
+        if vdi_cf is not None and vdi_cf.lower() == 'true':
+
+            # vdi-export of vm-snapshot
+
+            snap_vm_object = session.xenapi.VM.get_by_uuid(snap_vm_uuid)
+            snap_vm_record = session.xenapi.VM.get_record(snap_vm_object)
+
+            for vbd in snap_vm_record['VBDs']:
+
+                vbd_record = session.xenapi.VBD.get_record(vbd)
+                # For each vbd, find out if its a disk
+                if vbd_record['type'].lower() != 'disk':
+                    continue
+                vbd_record_device = vbd_record['device']
+
+                vdi_record = session.xenapi.VDI.get_record(vbd_record['VDI'])
+                vdi_uuid = vdi_record['uuid']
+                vdi_name_label = vdi_record['name_label']
+
+                # actual-backup: vdi-export vdi-snapshot
+                cmd = '%s/xe vdi-export format=%s uuid=%s' % (xe_path, config['vdi_export_format'], vdi_uuid)
+                full_path_backup_file = os.path.join(
+                        full_backup_dir,
+                        vm_name + '_' + vbd_record_device + '_' + vdi_name_label + '.%s' % config['vdi_export_format']
+                )
+                cmd = '%s filename="%s"' % (cmd, full_path_backup_file)
+                log('3.cmd: %s' % cmd)
+                if run_log_out_wait_rc(cmd) == 0:
+                    log('vdi-export success')
+                else:
+                    log('ERROR %s' % cmd)
+                    if config_specified:
+                        status_log_vdi_export_end(server_name, 'VDI-EXPORT-FAIL %s' % vm_name)
+                    error_cnt += 1
+                    # next vm
+                    continue
+
         else:
-            full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva')
-            cmd = '%s filename="%s"' % (cmd, full_path_backup_file) 
-        log('3.cmd: %s' % cmd)
-        if run_log_out_wait_rc(cmd) == 0:
-            log('vm-export success')
-        else:
-            log('ERROR %s' % cmd)
-            if config_specified:
-                status_log_vm_export_end(server_name, 'VM-EXPORT-FAIL %s' % vm_name)
-            error_cnt += 1
-            # next vm
-            continue
+            # vm-export vm-snapshot
+            cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_vm_uuid)
+            if compress:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva.gz')
+                cmd = '%s filename="%s" compress=true' % (cmd, full_path_backup_file)
+            else:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva')
+                cmd = '%s filename="%s"' % (cmd, full_path_backup_file)
+            log('3.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) == 0:
+                log('vm-export success')
+            else:
+                log('ERROR %s' % cmd)
+                if config_specified:
+                    status_log_vm_export_end(server_name, 'VM-EXPORT-FAIL %s' % vm_name)
+                error_cnt += 1
+                # next vm
+                continue
     
         # vm-uninstall vm-snapshot
         cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, snap_vm_uuid)
@@ -612,6 +651,13 @@ def gather_vm_meta(vm_object, tmp_full_backup_dir):
         vif_out.close()
 
     return tmp_error
+
+def get_custom_field(vm_object, vm_custom_field):
+    vm_record = session.xenapi.VM.get_record(vm_object)
+    if 'XenCenter.CustomFields.' + vm_custom_field in vm_record['other_config'].keys():
+        return vm_record['other_config']['XenCenter.CustomFields.' + vm_custom_field]
+
+    return None
 
 def final_cleanup( tmp_full_path_backup_file, tmp_backup_file_size, tmp_full_backup_dir, tmp_vm_backup_dir, tmp_vm_max_backups):
     # mark this a successful backup, note: this will 'touch' a file named 'success'
