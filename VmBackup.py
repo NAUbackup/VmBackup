@@ -41,6 +41,7 @@ from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
 from os.path import join
+from distutils.version import StrictVersion
 
 ############################# HARD CODED DEFAULTS
 # modify these hard coded default values, only used if not specified in config file
@@ -289,7 +290,7 @@ def main(session):
             # next vm
             continue
 
-        vm_backup_dir = os.path.join(config['backup_dir'], vm_name) 
+        vm_backup_dir = os.path.join(config['backup_dir'], vm_name)
         # cleanup any old unsuccessful backups and create new full_backup_dir
         full_backup_dir = process_backup_dir(vm_backup_dir)
 
@@ -334,7 +335,7 @@ def main(session):
                 this_status = 'warning'
                 if config_specified:
                     status_log_vm_export_end(server_name, 'VM-UNINSTALL-FAIL-1 %s' % vm_name)
-                # non-fatal - finsh processing for this vm
+                    # non-fatal - finsh processing for this vm
 
         # take a vm-snapshot of this vm
         cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
@@ -359,9 +360,12 @@ def main(session):
             error_cnt += 1
             # next vm
             continue
-    
+
+        cmd = 'cat /etc/redhat-release | cut -d" " -f3 | cut -d. -f1-2'
+        xen_version = run_get_lastline(cmd)
         vdi_cf = get_custom_field(vm_object, 'vdi_backup')
-        if vdi_cf is not None and vdi_cf.lower() == 'true':
+        if vdi_cf is not None and vdi_cf.lower() == 'true' and \
+                StrictVersion(xen_version) >= StrictVersion("6.5"):
 
             # vdi-export of vm-snapshot
 
@@ -369,13 +373,11 @@ def main(session):
             snap_vm_record = session.xenapi.VM.get_record(snap_vm_object)
 
             for vbd in snap_vm_record['VBDs']:
-
                 vbd_record = session.xenapi.VBD.get_record(vbd)
                 # For each vbd, find out if its a disk
                 if vbd_record['type'].lower() != 'disk':
                     continue
                 vbd_record_device = vbd_record['device']
-
                 vdi_record = session.xenapi.VDI.get_record(vbd_record['VDI'])
                 vdi_uuid = vdi_record['uuid']
                 vdi_name_label = vdi_record['name_label']
@@ -399,6 +401,9 @@ def main(session):
                     continue
 
         else:
+            if vdi_cf is not None and vdi_cf.lower() == 'true':
+                log('WARNING XenVersion lower than 6.5, no vdi-export available, doing vm-export instead')
+
             # vm-export vm-snapshot
             cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_vm_uuid)
             if compress:
@@ -417,7 +422,7 @@ def main(session):
                 error_cnt += 1
                 # next vm
                 continue
-    
+
         # vm-uninstall vm-snapshot
         cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, snap_vm_uuid)
         log('4.cmd: %s' % cmd)
@@ -445,7 +450,7 @@ def main(session):
                 status_log_vm_export_end(server_name, 'SUCCESS %s,elapse:%s size:%sG' % (vm_name, str(elapseTime.seconds/60), backup_file_size))
 
         elif (this_status == 'warning'):
-            warning_cnt += 1 
+            warning_cnt += 1
             log('VmBackup vm-export %s - ***WARNING*** t:%s' % (vm_name, str(elapseTime.seconds/60)))
             if config_specified:
                 status_log_vm_export_end(server_name, 'WARNING %s,elapse:%s size:%sG' % (vm_name, str(elapseTime.seconds/60), backup_file_size))
