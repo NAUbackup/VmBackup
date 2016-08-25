@@ -51,7 +51,7 @@ DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
 ## DEFAULT_BACKUP_DIR = '\snapshots\BACKUPS' # alt for CIFS mounts
 # note - some NAS file servers may fail with ':', so change to your desired format
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
-STATUS_LOG = '/snapshots/NAUbackup/status.log'
+DEFAULT_STATUS_LOG = '/snapshots/NAUbackup/status.log'
 
 ############################# OPTIONAL
 # optional email may be triggered by configure next 3 parameters then find MAIL_ENABLE and uncommenting out the desired lines
@@ -62,7 +62,7 @@ MAIL_SMTP_SERVER = 'your-mail-server'
 
 config = {}
 wildcards = {}
-expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'vdi_export_format', 'vm-export', 'vdi-export', 'exclude']
+expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'status_log', 'vdi_export_format', 'vm-export', 'vdi-export', 'exclude']
 message = ''
 xe_path = '/opt/xensource/bin' 
 
@@ -426,26 +426,27 @@ def main(session):
 
     # gather a final VmBackup.py status
     summary = 'S:%s W:%s E:%s' % (success_cnt, warning_cnt, error_cnt)
+    status_log = config['status_log']
     if (error_cnt > 0):
         if config_specified:
             status_log_end(server_name, 'ERROR,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email(MAIL_TO_ADDR, 'ERROR VmBackup.py', STATUS_LOG)
-            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
+            #send_email(MAIL_TO_ADDR, 'ERROR VmBackup.py', status_log)
+            #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - **ERRORS DETECTED** - %s' % summary)
     elif (warning_cnt > 0):
         if config_specified:
             status_log_end(server_name, 'WARNING,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email("%s 'WARNING VmBackup.py' %s" % (MAIL_TO_ADDR, STATUS_LOG))
-            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
+            #send_email("%s 'WARNING VmBackup.py' %s" % (MAIL_TO_ADDR, status_log))
+            #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - **WARNING(s)** - %s' % summary)
     else:
         if config_specified:
             status_log_end(server_name, 'SUCCESS,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email(MAIL_TO_ADDR, 'Success VmBackup.py', STATUS_LOG)
-            #open('%s' % STATUS_LOG, 'w').close() # trunc status log after email
+            #send_email(MAIL_TO_ADDR, 'Success VmBackup.py', status_log)
+            #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - Success - %s' % summary)
 
     # done with main()
@@ -1051,10 +1052,13 @@ def config_load_defaults():
         config['vdi_export_format'] = str(DEFAULT_VDI_EXPORT_FORMAT)
     if not 'backup_dir' in config.keys():
         config['backup_dir'] = str(DEFAULT_BACKUP_DIR)
+    if not 'status_log' in config.keys():
+        config['status_log'] = str(DEFAULT_STATUS_LOG)
 
 def config_print():
     log('VmBackup.py running with these settings:')
     log('  backup_dir        = %s' % config['backup_dir'])
+    log('  status_log        = %s' % config['status_log'])
     log('  compress          = %s' % compress)
     log('  max_backups       = %s' % config['max_backups'])
     log('  vdi_export_format = %s' % config['vdi_export_format'])
@@ -1086,27 +1090,27 @@ def config_print():
 
 def status_log_begin(server):
     rec_begin = '%s,vmbackup.py,%s,begin\n' % (fmtDateTime(), server)
-    open(STATUS_LOG,'a',0).write(rec_begin)
+    open(config['status_log'],'a',0).write(rec_begin)
 
 def status_log_end(server, status):
     rec_end = '%s,vmbackup.py,%s,end,%s\n' % (fmtDateTime(), server, status)
-    open(STATUS_LOG,'a',0).write(rec_end)
+    open(config['status_log'],'a',0).write(rec_end)
 
 def status_log_vm_export_begin(server, status):
     rec_begin = '%s,vm-export,%s,begin,%s\n' % (fmtDateTime(), server, status)
-    open(STATUS_LOG,'a',0).write(rec_begin)
+    open(config['status_log'],'a',0).write(rec_begin)
 
 def status_log_vm_export_end(server, status):
     rec_end = '%s,vm-export,%s,end,%s\n' % (fmtDateTime(), server, status)
-    open(STATUS_LOG,'a',0).write(rec_end)
+    open(config['status_log'],'a',0).write(rec_end)
 
 def status_log_vdi_export_begin(server, status):
     rec_begin = '%s,vdi-export,%s,begin,%s\n' % (fmtDateTime(), server, status)
-    open(STATUS_LOG,'a',0).write(rec_begin)
+    open(config['status_log'],'a',0).write(rec_begin)
 
 def status_log_vdi_export_end(server, status):
     rec_end = '%s,vdi-export,%s,end,%s\n' % (fmtDateTime(), server, status)
-    open(STATUS_LOG,'a',0).write(rec_end)
+    open(config['status_log'],'a',0).write(rec_end)
 
 def fmtDateTime():
     date = datetime.datetime.today()
