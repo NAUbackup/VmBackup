@@ -238,6 +238,20 @@ def main(session):
             error_cnt += 1
             # next vm
             continue
+
+        # backup metadata in xva format: vm-export metadata=true
+        full_path_backup_metadata_file = os.path.join(full_backup_dir, vm_name + '-metadata.xva')
+        cmd = '%s/xe vm-export vm=%s filename="%s" metadata=true' % (xe_path, vm_name, full_path_backup_metadata_file)
+        log('4bis.cmd: %s' % cmd)
+        if run_log_out_wait_rc(cmd) == 0:
+            log('vm-export metadata success')
+        else:
+            log('ERROR %s' % cmd)
+            if config_specified:
+                status_log_vdi_export_end(server_name, 'VDI-EXPORT-FAIL %s' % vm_name)
+            error_cnt += 1
+            # next vm
+            continue
     
         # cleanup: vdi-destroy vdi-snapshot
         cmd = '%s/xe vdi-destroy uuid=%s' % (xe_path, snap_vdi_uuid)
