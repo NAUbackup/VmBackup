@@ -18,6 +18,7 @@ Copyright (C) 2016  Northern Arizona University
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
+ - v3.2 2017/04/03 Adding metadata-export backup options
  - v3.1 2016/11/26 Replaced prefix wildcard option with python regex wildcards.
  - v3.0 2016/03/04 Added vdi-export and VM prefix wildcards.
  - v2.1 2014/08/22 Added email status option.
@@ -38,6 +39,9 @@ Copyright (C) 2016  Northern Arizona University
  - If the config-file pool_db_backup=1 is specified, then the pool state backup occurs via the `xe pool-dump-database` command. 
  - Optionally, a completion status email can be sent by configuring VmBackup.py variables that are provided in the code, see the Quick Start Checklist section.
 
+## Release 3.2 Summary
+ - Adding a new parameter to put in the config file: **metadata-export**. This option should be used like **vm-export** or **vdi-export** but will only backup metadata and will create an **xva** file using *xe vm-export vm=vmname filename="filename" metadata=true*.
+ - When **vdi-export** ran it also create an **xva** file with metadata following the same process as **metadata-export**.
 
 ## Release 3.1 Summary
 
@@ -192,6 +196,9 @@ These new features have been added:
 	# be discussed elsewhere
 	vm-export=PROD.*
 	vm-export=DEV.*:2
+	# metadata-export using the same regex principle than vm-export
+  	# metadata is not max_backups sensitive
+  	metadata-export=WEB.*
 
 #### Some simple examples:
 
