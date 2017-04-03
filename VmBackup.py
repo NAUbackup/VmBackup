@@ -117,12 +117,7 @@ def main(session):
         this_status = 'success'
         # get values from vdi-export=
         vm_name = get_vm_name(vm_parm)
-        # TODO: Add an option for metadata max backups
-        # Since metadata-export doesn't take a lot of space we can create
-        # multiple metadata backup
-        # NOTE: vm_max_backups options doesn't apply for metadata-export
-        vm_max_backups = sys.maxsize
-        # vm_max_backups = get_vm_max_backups(vm_parm)
+        vm_max_backups = get_vm_max_backups(vm_parm)
         log('metadata-export - vm_name: %s max_backups: %s' % (vm_name, vm_max_backups))
         if config_specified:
             status_log_metadata_export_begin(server_name, '%s' % vm_name)

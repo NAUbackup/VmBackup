@@ -197,8 +197,7 @@ These new features have been added:
 	vm-export=PROD.*
 	vm-export=DEV.*:2
 	# metadata-export using the same regex principle than vm-export
-  	# metadata is not max_backups sensitive
-  	metadata-export=WEB.*
+ 	metadata-export=WEB.*
 
 #### Some simple examples:
 
