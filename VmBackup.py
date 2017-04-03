@@ -175,7 +175,7 @@ def main(session):
         else:
             log('ERROR %s' % cmd)
             if config_specified:
-                status_log_metadata_export_end(server_name, 'VDI-EXPORT-FAIL %s' % vm_name)
+                status_log_metadata_export_end(server_name, 'METADATA-EXPORT-FAIL %s' % vm_name)
             error_cnt += 1
             # next vm
             continue
@@ -1085,7 +1085,9 @@ def save_to_config_export(key, value):
     for vm in all_vms:
         if ((isNormalVmName(vm_name_part) and vm_name_part == vm) or
             (not isNormalVmName(vm_name_part) and re.match(vm_name_part, vm))):
-            all_vms.remove(vm)
+            # WARNING NOTE: Looping on a list and removing at the same time
+            # isn't a good idea (chf. issue #36)
+            # all_vms.remove(vm)
             if vm_backups_part == '':
                 new_value = vm
             else:
