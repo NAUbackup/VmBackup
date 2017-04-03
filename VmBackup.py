@@ -168,7 +168,7 @@ def main(session):
 
         # backup metadata in xva format: vm-export metadata=true
         full_path_backup_metadata_file = os.path.join(full_backup_dir, vm_name + '-metadata.xva')
-        cmd = '%s/xe vm-export vm=%s filename="%s" metadata=true' % (xe_path, vm_name, full_path_backup_metadata_file)
+        cmd = '%s/xe vm-export vm="%s" filename="%s" metadata=true' % (xe_path, vm_name, full_path_backup_metadata_file)
         log('1.cmd: %s' % cmd)
         if run_log_out_wait_rc(cmd) == 0:
             log('vm-export metadata success')
@@ -346,7 +346,7 @@ def main(session):
 
         # backup metadata in xva format: vm-export metadata=true
         full_path_backup_metadata_file = os.path.join(full_backup_dir, vm_name + '-metadata.xva')
-        cmd = '%s/xe vm-export vm=%s filename="%s" metadata=true' % (xe_path, vm_name, full_path_backup_metadata_file)
+        cmd = '%s/xe vm-export vm="%s" filename="%s" metadata=true' % (xe_path, vm_name, full_path_backup_metadata_file)
         log('4bis.cmd: %s' % cmd)
         if run_log_out_wait_rc(cmd) == 0:
             log('vm-export metadata success')
@@ -476,7 +476,7 @@ def main(session):
                 # non-fatal - finsh processing for this vm
 
         # take a vm-snapshot of this vm
-        cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
+        cmd = '%s/xe vm-snapshot vm="%s" new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
         log('1.cmd: %s' % cmd)
         snap_vm_uuid = run_get_lastline(cmd)
         log ('snap-uuid: %s' % snap_vm_uuid)
