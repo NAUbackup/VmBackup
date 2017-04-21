@@ -1186,7 +1186,7 @@ def verify_vm_exist(vm_name):
         return True
 
 def get_all_vms():
-    cmd = "%s/xe vm-list is-control-domain=false params=name-label --minimal" % xe_path
+    cmd = "%s/xe vm-list is-control-domain=false is-a-snapshot=false params=name-label --minimal" % xe_path
     vms = run_get_lastline(cmd)
     return vms.split(',')
 
