@@ -127,7 +127,7 @@ def main(session):
         if 'ERROR' in vm_object:
             log('verify_vm_name: %s' % vm_object)
             if config_specified:
-                status_log_metada_export_end(server_name, 'ERROR verify_vm_name %s' % vm_name)
+                status_log_metadata_export_end(server_name, 'ERROR verify_vm_name %s' % vm_name)
             error_cnt += 1
             # next vm
             continue
