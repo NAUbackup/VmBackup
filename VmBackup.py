@@ -39,7 +39,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -797,6 +797,9 @@ def df_snapshots(log_msg):
         log(line)
 
 def send_email(to, subject, body_fname):
+    # number of times to attempt to send email
+    smtp_send_retries = 3
+    smtp_send_attempt = 0
 
     message = open('%s' % body_fname, 'r').read()
 
@@ -805,30 +808,42 @@ def send_email(to, subject, body_fname):
     msg['From'] = MAIL_FROM_ADDR
     msg['To'] = to
 
-    # note if using an ipaddress in MAIL_SMTP_SERVER, 
-    # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
+    while smtp_send_attempt < smtp_send_retries:
+        smtp_send_attempt += 1
+        if smtp_send_attempt > smtp_send_retries:
+            log("Email failed to send - retry count limit exceeded")
+        try:           
+            # note if using an ipaddress in MAIL_SMTP_SERVER, 
+            # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
 
-## Optional use of SMTP user authentication via TLS
-##
-## If so, comment out the next line of code and uncomment/configure
-## the next block of code. Note that different SMTP servers will require
-## different username options, such as the plain username, the
-## domain\username, etc. The "From" email address entry must be a valid
-## email address that can be authenticated  and should be configured
-## in the MAIL_FROM_ADDR variable along with MAIL_SMTP_SERVER early in
-## the script. Note that some SMTP servers might use port 465 instead of 587.
-    s = smtplib.SMTP(MAIL_SMTP_SERVER)
-#### start block
-    #username = 'MyLogin'
-    #password = 'MyPassword'
-    #s = smtplib.SMTP(MAIL_SMTP_SERVER, 587)
-    #s.ehlo()
-    #s.starttls()
-    #s.login(username, password)
-#### end block
-    s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
-    s.quit()
-
+            ## Optional use of SMTP user authentication via TLS
+            ##
+            ## If so, comment out the next line of code and uncomment/configure
+            ## the next block of code. Note that different SMTP servers will require
+            ## different username options, such as the plain username, the
+            ## domain\username, etc. The "From" email address entry must be a valid
+            ## email address that can be authenticated  and should be configured
+            ## in the MAIL_FROM_ADDR variable along with MAIL_SMTP_SERVER early in
+            ## the script. Note that some SMTP servers might use port 465 instead of 587.
+            s = smtplib.SMTP(MAIL_SMTP_SERVER)
+            #### start block
+            #username = 'MyLogin'
+            #password = 'MyPassword'
+            #s = smtplib.SMTP(MAIL_SMTP_SERVER, 587)
+            #s.ehlo()
+            #s.starttls()
+            #s.login(username, password)
+            #### end block
+            s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
+            s.quit()
+            break
+        except socket.error as e:
+            print("Exception: socket.error - {}".format(e))
+            time.sleep(5)
+        except smtplib.SMTPException as e:
+            print("Exception: SMTPException - {}".format(e.message))
+            time.sleep(5)
+            
 def is_xe_master():
     # test to see if we are running on xe master
 
