@@ -954,7 +954,7 @@ def save_to_config_exclude( key, vm_name):
     for vm in all_vms:
         if ((isNormalVmName(vm_name) and vm_name == vm) or
             (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
-            all_vms.remove(vm)
+            #all_vms.remove(vm)
             found_match = True
             config[key].append(vm)
     if not found_match:
@@ -980,7 +980,7 @@ def save_to_config_export( key, value):
     for vm in all_vms:
         if ((isNormalVmName(vm_name_part) and vm_name_part == vm) or
             (not isNormalVmName(vm_name_part) and re.match(vm_name_part, vm))):
-            all_vms.remove(vm)
+            #all_vms.remove(vm)
             if vm_backups_part == '':
                 new_value = vm
             else:
