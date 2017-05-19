@@ -542,7 +542,7 @@ def gather_vm_meta(vm_object, tmp_full_backup_dir):
     log ('Writing vm config file.')
     vm_out = open ('%s/vm.cfg' % tmp_full_backup_dir, 'w')
     vm_out.write('name_label=%s\n' % vm_record['name_label'])
-    vm_out.write('name_description=%s\n' % vm_record['name_description'])
+    vm_out.write('name_description=%s\n' % vm_record['name_description'].encode('utf-8'))
     vm_out.write('memory_dynamic_max=%s\n' % vm_record['memory_dynamic_max'])
     vm_out.write('VCPUs_max=%s\n' % vm_record['VCPUs_max'])
     vm_out.write('VCPUs_at_startup=%s\n' % vm_record['VCPUs_at_startup'])
