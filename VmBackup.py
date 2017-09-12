@@ -944,7 +944,7 @@ def save_to_config_exclude( key, vm_name):
         if ((isNormalVmName(vm_name) and vm_name == vm) or
             (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
             found_match = True
-            config[key].append(vm)
+            config[key].insert(0, vm)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, vm_name))
         warning_match = True
@@ -985,7 +985,7 @@ def save_to_config_export( key, value):
             else:
                 new_value = "%s:%s" % (vm, vm_backups_part)
             found_match = True
-            config[key].append(new_value)
+            config[key].insert(0, new_value)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, value))
         warning_match = True
