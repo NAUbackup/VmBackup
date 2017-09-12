@@ -944,7 +944,7 @@ def save_to_config_exclude( key, vm_name):
         if ((isNormalVmName(vm_name) and vm_name == vm) or
             (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
             found_match = True
-            config[key].insert(0, vm)
+            config[key].append(vm)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, vm_name))
         warning_match = True
@@ -991,7 +991,7 @@ def save_to_config_export( key, value):
             if key == "vm-export" and vm in config['vdi-export']:
                 continue
             else:
-                config[key].insert(0, new_value)
+                config[key].append(new_value)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, value))
         warning_match = True
@@ -1136,7 +1136,7 @@ def config_print():
 
     log('  exclude (cnt)= %s' % len(config['exclude']))
     str = ''
-    for vm_parm in config['exclude']:
+    for vm_parm in sorted(config['exclude']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
@@ -1144,7 +1144,7 @@ def config_print():
 
     log('  vdi-export (cnt)= %s' % len(config['vdi-export']))
     str = ''
-    for vm_parm in config['vdi-export']:
+    for vm_parm in sorted(config['vdi-export']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
@@ -1152,7 +1152,7 @@ def config_print():
 
     log('  vm-export (cnt)= %s' % len(config['vm-export']))
     str = ''
-    for vm_parm in config['vm-export']:
+    for vm_parm in sorted(config['vm-export']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
