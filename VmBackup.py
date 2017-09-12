@@ -1072,7 +1072,7 @@ def verify_vm_exist(vm_name):
         return True
 
 def get_all_vms():
-    cmd = "%s/xe vm-list is-control-domain=false params=name-label --minimal" % xe_path
+    cmd = "%s/xe vm-list is-control-domain=false is-a-snapshot=false params=name-label --minimal" % xe_path
     vms = run_get_lastline(cmd)
     return vms.split(',')
 
@@ -1106,14 +1106,6 @@ def cleanup_vmexport_vdiexport_dups():
             if tmp_vm_parm == tmp_vdi_parm:
                 log('***WARNING vdi-export dup - remove vm-export=%s' % vm_parm) #debug
                 config['vm-export'].remove(vm_parm)
-
-def remove_excludes():
-    for vm_export in config['vm-export']:
-        if get_vm_name(vm_export) in config['exclude']:
-            config['vm-export'].remove(vm_export)
-    for vdi_export in config['vdi-export']:
-        if get_vm_name(vdi_export) in config['exclude']:
-            config['vdi-export'].remove(vdi_export)
 
 def config_load_defaults():
     # init config param not already loaded then load with default values
@@ -1377,16 +1369,7 @@ if __name__ == '__main__':
         # config file exists
         config_specified = 1
         if config_load(cfg_file):
-            # mystery - why is both next section and remove_excludes() needed???
-            #for vm_export in config['vm-export']:
-            #    if get_vm_name(vm_export) in config['exclude']:
-            #        config['vm-export'].remove(vm_export)
-            #for vdi_export in config['vdi-export']:
-            #    if get_vm_name(vdi_export) in config['exclude']:
-            #        config['vdi-export'].remove(vdi_export)
-            #remove_excludes()
             cleanup_vmexport_vdiexport_dups()
-
         else:
             print 'ERROR in config_load, consider ignore_extra_keys=true'
             sys.exit(1)
