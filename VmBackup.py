@@ -18,7 +18,7 @@
 # Title: NAUbackup / VmBackup - a XenServer vm-export and vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
-# - v3.1 2016/11/26 Added regexp include/exclude syntax for slecting VMs,
+# - v3.1 2016/11/26 Added regexp include/exclude syntax for selecting VMs,
 #        checking writability of backup directory, SMTP TLS email option,
 #        define DEFAULT_STATUS_LOG parameter
 # - v3.0 2016/01/20 Added vdi-export for VMs with too many/large disks for vm-export
