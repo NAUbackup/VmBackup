@@ -959,12 +959,17 @@ def save_to_config_export( key, value):
     global warning_match
     global error_regex
     found_match = False
+
+    # Fail fast if all VMs excluded or if no VMs exist in the pool
+    if all_vms == []:
+        return
+
     # Fail fast if vdi-export given but empty to prevent from matching all VMs first-come-first-served style
-    # i.e. this could lead to vdi-export being empty but overriding all vm-export selections simply because
-    # it is listed first in the config
     # NOTE: This checks for the vdi-export key only so leaving vm-export empty will still default to all VMs
     if key == "vdi-export" and value == "":
         return
+
+    # Evaluate key/value pairs if we get this far
     values = value.split(':')
     vm_name_part = values[0]
     vm_backups_part = ''
