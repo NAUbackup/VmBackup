@@ -977,15 +977,16 @@ def save_to_config_export( key, value):
     for vm in all_vms:
         if ((isNormalVmName(vm_name_part) and vm_name_part == vm) or
             (not isNormalVmName(vm_name_part) and re.match(vm_name_part, vm))):
-            # Check if vdi-export already has the vm mentioned and, if so, do not add this vm to vm-export
-            if key == "vm-export" and vm in config['vdi-export']:
-                continue
             if vm_backups_part == '':
                 new_value = vm
             else:
                 new_value = "%s:%s" % (vm, vm_backups_part)
             found_match = True
-            config[key].insert(0, new_value)
+            # Check if vdi-export already has the vm mentioned and, if so, do not add this vm to vm-export
+            if key == "vm-export" and vm in config['vdi-export']:
+                continue
+            else:
+                config[key].insert(0, new_value)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, value))
         warning_match = True
