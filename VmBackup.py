@@ -39,7 +39,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, base64, socket
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
