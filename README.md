@@ -187,7 +187,7 @@ These new features have been added:
 	vdi-export=my-vm-name
 
 	# vm-export using VM prefix wildcard - notice DEV.* has :max_backups overide
-	# and note the necessary ".*" syntax needed to replicaite the "*" wildcard
+	# and note the necessary ".*" syntax needed to replicate the "*" wildcard
 	# syntax used in V3.0 and now deprecated. More detailed examples will
 	# be discussed elsewhere
 	vm-export=PROD.*
