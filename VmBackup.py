@@ -934,7 +934,7 @@ def save_to_config_exclude( key, vm_name):
     global error_regex
     found_match = False
     # Fail fast if exclude param given but empty to prevent from excluding all VMs
-    if vm_name = "":
+    if vm_name == "":
         return
     if not isNormalVmName(vm_name) and not isRegExValid( vm_name):
         log("***ERROR - invalid regex: %s=%s" % (key, vm_name))
@@ -1395,7 +1395,7 @@ if __name__ == '__main__':
     if config_specified == 1:
       log('VmBackup config loaded from: %s' % arg_3)
     else:
-      log('Running with default config)
+      log('Running with default config')
     config_print()     # show fully loaded config
     
     if not is_config_valid():
