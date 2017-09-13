@@ -933,7 +933,7 @@ def save_to_config_exclude( key, vm_name):
     global warning_match
     global error_regex
     found_match = False
-    # Fail fast if exclude param given but empty to prevent from exluding all VMs
+    # Fail fast if exclude param given but empty to prevent from excluding all VMs
     if vm_name = "":
         return
     if not isNormalVmName(vm_name) and not isRegExValid( vm_name):
