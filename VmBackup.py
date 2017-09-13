@@ -1331,11 +1331,11 @@ if __name__ == '__main__':
         usage()
         sys.exit(1)
     password = sys.argv[1]
-    cfg_file = sys.argv[2]
+    arg_3 = sys.argv[2]
     # obscure password support
     if (os.path.exists(password)): 
         password = base64.b64decode(open(password, 'r').read())
-    if cfg_file.lower().startswith('create-password-file'):
+    if arg_3.lower().startswith('create-password-file'):
         array = sys.argv[2].strip().split('=')
         open(array[1], 'w').write(base64.b64encode(password))
         print 'password file saved to: %s' % array[1]
@@ -1370,29 +1370,32 @@ if __name__ == '__main__':
 
     all_vms = get_all_vms()
     # process config file
-    if (os.path.exists(cfg_file)):
+    if (os.path.exists(arg_3)):
         # config file exists
         config_specified = 1
-        if config_load(cfg_file):
+        if config_load(arg_3):
             cleanup_vmexport_vdiexport_dups()
         else:
             print 'ERROR in config_load, consider ignore_extra_keys=true'
             sys.exit(1)
     else:
-        # no config file exists - so cfg_file is actual vm_name/prefix
+        # no config file exists - so arg_3 is actual vm_name/prefix
         config_specified = 0
         cmd_option = 'vm-export' # default
-        cmd_vm_name = cfg_file   # in this case a vm name pattern
+        cmd_vm_name = arg_3   # in this case a vm name pattern
         if cmd_vm_name.count('=') == 1:
             (cmd_option,cmd_vm_name) = cmd_vm_name.strip().split('=')
         if cmd_option != 'vm-export' and cmd_option != 'vdi-export':
-            print 'ERROR invalid config/vm_name: %s' % cfg_file
+            print 'ERROR invalid config/vm_name: %s' % cmd_vm_name
             usage()
             sys.exit(1)
         save_to_config_export( cmd_option, cmd_vm_name)
 
     config_load_defaults()  # set defaults that are not already loaded
-    log('VmBackup config loaded from: %s' % cfg_file)
+    if config_specified == 1:
+      log('VmBackup config loaded from: %s' % arg_3)
+    else:
+      log('Running with default config)
     config_print()     # show fully loaded config
     
     if not is_config_valid():
