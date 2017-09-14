@@ -1,6 +1,21 @@
 #!/usr/bin/python
+#
+#NAUVmBackup/VmBackup.py
+# V3.2 September 2017
+#
+#@NAUbackup - NAU/ITS Department:
+# Douglas Pace
+# David McArthur
+# Duane Booher
+# Tobias Kreidl
+# With external contributions gratefully made by:
+# @philippmk - 
+# @ilium007 -
+# @HqWisen -
+# @JHag6694 -
+# @lancefogle - Lance Fogle
 
-# Copyright (C) 2016  Northern Arizona University
+# Copyright (C) 2017  Northern Arizona University
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +33,9 @@
 # Title: NAUbackup / VmBackup - a XenServer vm-export and vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
-# - v3.1 2016/11/26 Added regexp include/exclude syntax for slecting VMs,
+# - v3.2 2017/09/12 Fix wildcard handling and excludes for both VM and VDI
+#        cases, add email retries
+# - v3.1 2016/11/26 Added regexp include/exclude syntax for selecting VMs,
 #        checking writability of backup directory, SMTP TLS email option,
 #        define DEFAULT_STATUS_LOG parameter
 # - v3.0 2016/01/20 Added vdi-export for VMs with too many/large disks for vm-export
@@ -39,7 +56,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -797,6 +814,9 @@ def df_snapshots(log_msg):
         log(line)
 
 def send_email(to, subject, body_fname):
+    
+    smtp_send_retries = 3
+    smtp_send_attempt = 0
 
     message = open('%s' % body_fname, 'r').read()
 
@@ -805,30 +825,43 @@ def send_email(to, subject, body_fname):
     msg['From'] = MAIL_FROM_ADDR
     msg['To'] = to
 
-    # note if using an ipaddress in MAIL_SMTP_SERVER, 
-    # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
+    while smtp_send_attempt < smtp_send_retries:
+        smtp_send_attempt += 1
+        if smtp_send_attempt > smtp_send_retries:
+            print("Send email count limit exceeded")
+            sys.exit(1)
+        try:
+            # note if using an ipaddress in MAIL_SMTP_SERVER, 
+            # then may require smtplib.SMTP(MAIL_SMTP_SERVER, local_hostname="localhost")
 
-## Optional use of SMTP user authentication via TLS
-##
-## If so, comment out the next line of code and uncomment/configure
-## the next block of code. Note that different SMTP servers will require
-## different username options, such as the plain username, the
-## domain\username, etc. The "From" email address entry must be a valid
-## email address that can be authenticated  and should be configured
-## in the MAIL_FROM_ADDR variable along with MAIL_SMTP_SERVER early in
-## the script. Note that some SMTP servers might use port 465 instead of 587.
-    s = smtplib.SMTP(MAIL_SMTP_SERVER)
-#### start block
-    #username = 'MyLogin'
-    #password = 'MyPassword'
-    #s = smtplib.SMTP(MAIL_SMTP_SERVER, 587)
-    #s.ehlo()
-    #s.starttls()
-    #s.login(username, password)
-#### end block
-    s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
-    s.quit()
-
+            ## Optional use of SMTP user authentication via TLS
+            ##
+            ## If so, comment out the next line of code and uncomment/configure
+            ## the next block of code. Note that different SMTP servers will require
+            ## different username options, such as the plain username, the
+            ## domain\username, etc. The "From" email address entry must be a valid
+            ## email address that can be authenticated  and should be configured
+            ## in the MAIL_FROM_ADDR variable along with MAIL_SMTP_SERVER early in
+            ## the script. Note that some SMTP servers might use port 465 instead of 587.
+            s = smtplib.SMTP(MAIL_SMTP_SERVER)
+            #### start block
+            #username = 'MyLogin'
+            #password = 'MyPassword'
+            #s = smtplib.SMTP(MAIL_SMTP_SERVER, 587)
+            #s.ehlo()
+            #s.starttls()
+            #s.login(username, password)
+            #### end block
+            s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
+            s.quit()
+            break
+        except socket.error as e:
+            print("Exception: socket.error - {}".format(e))
+            time.sleep(5)
+        except smtplib.SMTPException as e:
+            print("Exception: SMTPException - {}".format(e.message))
+            time.sleep(5)
+            
 def is_xe_master():
     # test to see if we are running on xe master
 
@@ -910,20 +943,6 @@ def config_load(path):
 
     return return_value
 
-#def save_to_config_exclude( key, vm_name):
-#    # save key/value in config[]
-#    global warning_match
-#    found_match = False
-#    for vm in all_vms:
-#        if vm_name == vm:
-#            all_vms.remove(vm)
-#            found_match = True
-#            config[key].append(vm_name)
-#            return
-#    if not found_match:
-#        log("***WARNING - vm not found: %s=%s" % (key, vm_name))
-#        warning_match = True
-
 def save_to_config_exclude( key, vm_name):
     # save key/value in config[]
     # expected-key: exclude
@@ -931,6 +950,9 @@ def save_to_config_exclude( key, vm_name):
     global warning_match
     global error_regex
     found_match = False
+    # Fail fast if exclude param given but empty to prevent from exluding all VMs
+    if vm_name == "":
+        return
     if not isNormalVmName(vm_name) and not isRegExValid( vm_name):
         log("***ERROR - invalid regex: %s=%s" % (key, vm_name))
         error_regex = True
@@ -938,12 +960,14 @@ def save_to_config_exclude( key, vm_name):
     for vm in all_vms:
         if ((isNormalVmName(vm_name) and vm_name == vm) or
             (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
-            all_vms.remove(vm)
             found_match = True
             config[key].append(vm)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, vm_name))
         warning_match = True
+    else:
+        for vm in config[key]:
+            all_vms.remove(vm)
 
 def save_to_config_export( key, value):
     # save key/value in config[]
@@ -952,6 +976,17 @@ def save_to_config_export( key, value):
     global warning_match
     global error_regex
     found_match = False
+
+    # Fail fast if all VMs excluded or if no VMs exist in the pool
+    if all_vms == []:
+        return
+
+    # Fail fast if vdi-export given but empty to prevent from matching all VMs first-come-first-served style
+    # NOTE: This checks for the vdi-export key only so leaving vm-export empty will still default to all VMs
+    if key == "vdi-export" and value == "":
+        return
+
+    # Evaluate key/value pairs if we get this far
     values = value.split(':')
     vm_name_part = values[0]
     vm_backups_part = ''
@@ -964,13 +999,16 @@ def save_to_config_export( key, value):
     for vm in all_vms:
         if ((isNormalVmName(vm_name_part) and vm_name_part == vm) or
             (not isNormalVmName(vm_name_part) and re.match(vm_name_part, vm))):
-            all_vms.remove(vm)
             if vm_backups_part == '':
                 new_value = vm
             else:
                 new_value = "%s:%s" % (vm, vm_backups_part)
             found_match = True
-            config[key].append(new_value)
+            # Check if vdi-export already has the vm mentioned and, if so, do not add this vm to vm-export
+            if key == "vm-export" and vm in config['vdi-export']:
+                continue
+            else:
+                config[key].append(new_value)
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, value))
         warning_match = True
@@ -1056,7 +1094,7 @@ def verify_vm_exist(vm_name):
         return True
 
 def get_all_vms():
-    cmd = "%s/xe vm-list is-control-domain=false params=name-label --minimal" % xe_path
+    cmd = "%s/xe vm-list is-control-domain=false is-a-snapshot=false params=name-label --minimal" % xe_path
     vms = run_get_lastline(cmd)
     return vms.split(',')
 
@@ -1091,14 +1129,6 @@ def cleanup_vmexport_vdiexport_dups():
                 log('***WARNING vdi-export dup - remove vm-export=%s' % vm_parm) #debug
                 config['vm-export'].remove(vm_parm)
 
-def remove_excludes():
-    for vm_export in config['vm-export']:
-        if get_vm_name(vm_export) in config['exclude']:
-            config['vm-export'].remove(vm_export)
-    for vdi_export in config['vdi-export']:
-        if get_vm_name(vdi_export) in config['exclude']:
-            config['vdi-export'].remove(vdi_export)
-
 def config_load_defaults():
     # init config param not already loaded then load with default values
     if not 'pool_db_backup' in config.keys():
@@ -1123,7 +1153,7 @@ def config_print():
 
     log('  exclude (cnt)= %s' % len(config['exclude']))
     str = ''
-    for vm_parm in config['exclude']:
+    for vm_parm in sorted(config['exclude']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
@@ -1131,7 +1161,7 @@ def config_print():
 
     log('  vdi-export (cnt)= %s' % len(config['vdi-export']))
     str = ''
-    for vm_parm in config['vdi-export']:
+    for vm_parm in sorted(config['vdi-export']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
@@ -1139,7 +1169,7 @@ def config_print():
 
     log('  vm-export (cnt)= %s' % len(config['vm-export']))
     str = ''
-    for vm_parm in config['vm-export']:
+    for vm_parm in sorted(config['vm-export']):
         str += '%s, ' % vm_parm
     if len(str) > 1:
         str = str[:-2]
@@ -1361,16 +1391,7 @@ if __name__ == '__main__':
         # config file exists
         config_specified = 1
         if config_load(cfg_file):
-            # mystery - why is both next section and remove_excludes() needed???
-            #for vm_export in config['vm-export']:
-            #    if get_vm_name(vm_export) in config['exclude']:
-            #        config['vm-export'].remove(vm_export)
-            #for vdi_export in config['vdi-export']:
-            #    if get_vm_name(vdi_export) in config['exclude']:
-            #        config['vdi-export'].remove(vdi_export)
-            #remove_excludes()
             cleanup_vmexport_vdiexport_dups()
-
         else:
             print 'ERROR in config_load, consider ignore_extra_keys=true'
             sys.exit(1)

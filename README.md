@@ -1,4 +1,4 @@
-Copyright (C) 2016  Northern Arizona University
+Copyright (C) 2017  Northern Arizona University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,10 +18,27 @@ Copyright (C) 2016  Northern Arizona University
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
+ - v3.2 2017/09/12 Fix wildcard handling and excludes for both VM and VDI
+        cases, add email retries.
  - v3.1 2016/11/26 Replaced prefix wildcard option with python regex wildcards.
  - v3.0 2016/03/04 Added vdi-export and VM prefix wildcards.
  - v2.1 2014/08/22 Added email status option.
- - v2.0 2014/04/09 New VmBackup version supersedes all previous NAU Backup releases.
+ - v2.0 2014/04/09 New VmBackup version supersedes all previous NAU Backup
+        releases.
+
+NAUbackup Authors --
+NAU/ITS Department:
+ Douglas Pace
+ David McArthur
+ Duane Booher
+ Tobias Kreidl
+
+ With gratitude for external contributions made by:
+ @philippmk
+ @ilium007
+ @HqWisen
+ @JHag6694
+ @lancefogle - Lance Fogle
 
 **DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS.**
  
@@ -187,7 +204,7 @@ These new features have been added:
 	vdi-export=my-vm-name
 
 	# vm-export using VM prefix wildcard - notice DEV.* has :max_backups overide
-	# and note the necessary ".*" syntax needed to replicaite the "*" wildcard
+	# and note the necessary ".*" syntax needed to replicate the "*" wildcard
 	# syntax used in V3.0 and now deprecated. More detailed examples will
 	# be discussed elsewhere
 	vm-export=PROD.*
