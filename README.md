@@ -56,6 +56,12 @@ NAU/ITS Department:
  - Optionally, a completion status email can be sent by configuring VmBackup.py variables that are provided in the code, see the Quick Start Checklist section.
 
 
+## Release 3.2 Summary
+
+ - Regex checking for wildcard expansion for includes and excludes fixed and made to work also for VDI in addition to VM cases, including null results.
+ - Added better handling of sending email with retries incorporated.
+ - Minor documentation fixes in the code.
+
 ## Release 3.1 Summary
 
  - Deprecated **VM prefix wildcard** option for vm-export and vm-import (see regex option below). The syntax was vm-export=PROD* and vdi-export=PRD-with-many-disks* but note that python regex will interpret this _differently_ than a Linux shell "grep" command. More details are given below.
