@@ -488,3 +488,73 @@ If config pool_db_backup=1 has been specified then a %BACKUP_DIR%/METADATA_host-
 
 In the situation where the pool is corrupt and no hosts will start in the pool then it may be necessary to restore and rebuild the XenServer pool. **This decision should be carefully reviewed with advice from Citrix Support.** Consult the Citrix XenServer Administrator's Guide chapter 8 and review sections that discuss the `xe pool-restore-database` command.
 
+##Example of setting up an NFS export on a Linux server for VmBackup
+
+Note that there may be slight variations here, depending on the exact OS
+and OS version of the NFS Linux server being used.
+
+Create a subdirectory on your XenServers, for example: /snapshots
+
+This can also be additional layers deep, such as /snapshots/xspool2
+or whatever name you wish, as long as you properly set the permissions
+correctly and down through all layers.
+
+Permissions should be set to 755 (drwxr-xr-x) by running this command
+(substitute in your own directory and subdirectory, of course):
+
+chmod 755 /snapshots
+
+and it should be owned in this case by root and can be checked if you run:
+ls -l /snapshots
+
+drwxr-xr-x 9 root root 4096 Sep 17 08:10 /snapshots/
+
+The export permissions should be set in the NFS server's /etc/exports
+file as follows, making sure there is an entry for every XenServer
+that needs to be able to access the NFS share, for example:
+
+/snapshots 10.11.12.10(rw,sync,no_root_squash)
+/snapshots 10.11.12.11(rw,sync,no_root_squash)
+/snapshots 10.11.12.12(rw,sync,no_root_squash)
+
+On the NFS server, run "exportfs -a" to update the list of NFS exports.
+
+On the each of the XenServer hosts, create a corresponding subdirectory
+(which can be different from what is exported from the NFS server -- that's
+up to you) and add a mount point entry in /etc/fstab with in this case,
+the NFS server having the IP address of 192.168.120.200 which might be
+set up via a VLAN or a dedicated NIC that was assigned that address
+(and make sure this is edited in as a single line):
+
+192.168.120.200:/snapshots /snapshots/xspool2 nfs rw,tcp,soft,intr,nfsvers=3,
+rsize=1048576,wsize=1048576  0 0
+
+The directories should all also be owned by root:root and have the same 755
+permissions as with the subdirectory defined on the NFS server side.
+Note that if not specified, the rsize/wsize will default to whatever your
+server has defined, but in many cases, performance can be improved by
+increasing those buffere sizes well beyond what might be typical, like
+32k or 64k. Also not that the NFS version will depend on which version
+of NFS you are running both on your NFS server as well as which version
+of XenServer you are running. It will fall back to whatever is the default
+if you leave out the "nfsvers=N" entry altogether.
+
+At this point, you can verify the share can be seen by your XenServer host:
+
+showmount -e 192.168.120.200
+
+which should give you an export list that includes your XenServer(s).
+
+Finally, a "mount -a" command should mount the NFS area and a "df" command
+should show it visble on each of your XenServers.
+
+Make sure to update the NFS mount point definition in any VmBackup
+configuration (.cfg) file(s) you make use of if you do not use the default
+settings. For example, to match the above coniguration, you could override
+the default by adding the line:
+
+backup_dir='/snapshots/xspool2'
+
+Note that the default is set in the VmBackup.py file itself:
+
+DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
