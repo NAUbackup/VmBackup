@@ -488,7 +488,7 @@ If config pool_db_backup=1 has been specified then a %BACKUP_DIR%/METADATA_host-
 
 In the situation where the pool is corrupt and no hosts will start in the pool then it may be necessary to restore and rebuild the XenServer pool. **This decision should be carefully reviewed with advice from Citrix Support.** Consult the Citrix XenServer Administrator's Guide chapter 8 and review sections that discuss the `xe pool-restore-database` command.
 
-##Example of setting up an NFS export on a Linux server for VmBackup
+### Example of setting up an NFS export on a Linux server for VmBackup
 
 Note that there may be slight variations here, depending on the exact OS
 and OS version of the NFS Linux server being used.
