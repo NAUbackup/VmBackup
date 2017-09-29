@@ -858,10 +858,10 @@ def send_email(to, subject, body_fname):
             s.quit()
             break
         except socket.error, e:
-            print("Exception: socket.error - {}".format(e))
+            print("Exception: socket.error -  %s" %e)
             time.sleep(5)
         except smtplib.SMTPException, e:
-            print("Exception: SMTPException - {}".format(e.message))
+            print("Exception: SMTPException - %s" %e.message)
             time.sleep(5)
             
 def is_xe_master():
