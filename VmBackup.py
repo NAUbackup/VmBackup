@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.2 September 2017
+# V3.21 September 2017
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
@@ -33,6 +33,8 @@
 # Title: NAUbackup / VmBackup - a XenServer vm-export and vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
+# - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
+#         python version in XenServer 6.X
 # - v3.2 2017/09/12 Fix wildcard handling and excludes for both VM and VDI
 #        cases, add email retries
 # - v3.1 2016/11/26 Added regexp include/exclude syntax for selecting VMs,
@@ -855,10 +857,10 @@ def send_email(to, subject, body_fname):
             s.sendmail(MAIL_FROM_ADDR, to.split(','), msg.as_string())
             s.quit()
             break
-        except socket.error as e:
+        except socket.error, e:
             print("Exception: socket.error - {}".format(e))
             time.sleep(5)
-        except smtplib.SMTPException as e:
+        except smtplib.SMTPException, e:
             print("Exception: SMTPException - {}".format(e.message))
             time.sleep(5)
             
