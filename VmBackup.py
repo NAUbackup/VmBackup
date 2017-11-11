@@ -1,13 +1,14 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.21 September 2017
+# V3.22 November 2017
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
 # David McArthur
 # Duane Booher
 # Tobias Kreidl
+#
 # With external contributions gratefully made by:
 # @philippmk - 
 # @ilium007 -
@@ -30,19 +31,23 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Title: NAUbackup / VmBackup - a XenServer vm-export and vdi-export Backup Script
+# Title: NAUbackup/VmBackup - a XenServer vm-export & vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
+# - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
+#         metadata backup that could fail if special characters encountered
 # - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
 #         python version in XenServer 6.X
-# - v3.2 2017/09/12 Fix wildcard handling and excludes for both VM and VDI
-#        cases, add email retries
-# - v3.1 2016/11/26 Added regexp include/exclude syntax for selecting VMs,
-#        checking writability of backup directory, SMTP TLS email option,
-#        define DEFAULT_STATUS_LOG parameter
-# - v3.0 2016/01/20 Added vdi-export for VMs with too many/large disks for vm-export
-# - v2.1 2014/08/22 Added email status option
-# - v2.0 2014/04/09 New VmBackup version (supersedes all previous NAUbackup versions)
+# - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
+#         cases, add email retries
+# - v3.1  2016/11/26 Added regexp include/exclude syntax for selecting VMs,
+#         checking writability of backup directory, SMTP TLS email option,
+#         define DEFAULT_STATUS_LOG parameter
+# - v3.0  2016/01/20 Added vdi-export for VMs with too many/large disks for
+#         vm-export
+# - v2.1  2014/08/22 Added email status option
+# - v2.0  2014/04/09 New VmBackup version (supersedes all previous NAUbackup
+#         versions)
 
 # ** DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS. **
 # => To accomplish the vm backup this script uses the following xe commands
@@ -160,11 +165,14 @@ def main(session):
 
         # gather_vm_meta produces status: empty or warning-message 
         #   and globals: vm_uuid, xvda_uuid, xvda_uuid
+        #   => now only need: vm_uuid
+        #   since all VM metadta go into an XML file
         vm_meta_status = gather_vm_meta(vm_object, full_backup_dir)
         if vm_meta_status != '':
             log('WARNING gather_vm_meta: %s' % vm_meta_status)
             this_status = 'warning'
             # non-fatal - finsh processing for this vm
+
         # vdi-export only uses xvda_uuid, xvda_uuid
         if xvda_uuid == '':
             log('ERROR gather_vm_meta has no xvda-uuid')
@@ -549,35 +557,52 @@ def verify_vm_name(tmp_vm_name):
 
 def gather_vm_meta(vm_object, tmp_full_backup_dir):
     global vm_uuid
-    global xvda_uuid
-    global xvda_name_label
+#    global xvda_uuid
+#    global xvda_name_label
     vm_uuid = ''
-    xvda_uuid = ''
-    xvda_name_label = ''
+#    xvda_uuid = ''
+#    xvda_name_label = ''
     tmp_error = '';
-    vm_record = session.xenapi.VM.get_record(vm_object)
 
-    # Backup vm meta data
-    log ('Writing vm config file.')
-    vm_out = open ('%s/vm.cfg' % tmp_full_backup_dir, 'w')
-    vm_out.write('name_label=%s\n' % vm_record['name_label'])
-    vm_out.write('name_description=%s\n' % vm_record['name_description'])
-    vm_out.write('memory_dynamic_max=%s\n' % vm_record['memory_dynamic_max'])
-    vm_out.write('VCPUs_max=%s\n' % vm_record['VCPUs_max'])
-    vm_out.write('VCPUs_at_startup=%s\n' % vm_record['VCPUs_at_startup'])
-    # notice some keys are not always available
-    try:
-        # notice list within list : vm_record['other_config']['base_template_name']
-        vm_out.write('base_template_name=%s\n' % vm_record['other_config']['base_template_name'])
-    except KeyError:
-        # ignore
-        pass
-    vm_out.write('os_version=%s\n' % get_os_version(vm_record['uuid']))
-    # get orig uuid for special metadata disaster recovery
-    vm_out.write('orig_uuid=%s\n' % vm_record['uuid'])
+    vm_record = session.xenapi.VM.get_record(vm_object)
     vm_uuid = vm_record['uuid']
-    vm_out.close()
-       
+
+    log ('Exporting VM metadata XML info')
+    cmd = '%s/xe vm-export metadata=true uuid=%s filename= | tar -xOf - | /usr/bin/xmllint -format - > "%s/vm-metadata.xml"' % (xe_path, vm_uuid, tmp_full_backup_dir)
+    if run_log_out_wait_rc(cmd) != 0:
+        log('WARNING %s' % cmd)
+        this_status = 'warning'
+        # non-fatal - finish processing for this vm
+
+    log ('*** vm-export metadata end')
+
+### The backup of the VM metadata portion in the code section below is
+### deprecated since some entries such as name_label can contain
+### non-standard characters that result in errors. All metadata are now saved
+### using the code above. The additional VIF, Disk, VDI and VBD outputs
+### are retained for now.
+
+#    # Backup vm meta data
+#    log ('Writing vm config file.')
+#    vm_out = open ('%s/vm.cfg' % tmp_full_backup_dir, 'w')
+#    vm_out.write('name_label=%s\n' % vm_record['name_label'])
+#    vm_out.write('name_description=%s\n' % vm_record['name_description'])
+#    vm_out.write('memory_dynamic_max=%s\n' % vm_record['memory_dynamic_max'])
+#    vm_out.write('VCPUs_max=%s\n' % vm_record['VCPUs_max'])
+#    vm_out.write('VCPUs_at_startup=%s\n' % vm_record['VCPUs_at_startup'])
+#    # notice some keys are not always available
+#    try:
+#        # notice list within list : vm_record['other_config']['base_template_name']
+#        vm_out.write('base_template_name=%s\n' % vm_record['other_config']['base_template_name'])
+#    except KeyError:
+#        # ignore
+#        pass
+#    vm_out.write('os_version=%s\n' % get_os_version(vm_record['uuid']))
+#    # get orig uuid for special metadata disaster recovery
+#    vm_out.write('orig_uuid=%s\n' % vm_record['uuid'])
+#    vm_uuid = vm_record['uuid']
+#    vm_out.close()
+#       
     # Write metadata files for vdis and vbds.  These end up inside of a DISK- directory.
     log ('Writing disk info')
     vbd_cnt = 0

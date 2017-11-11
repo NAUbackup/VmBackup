@@ -18,15 +18,17 @@ Copyright (C) 2017  Northern Arizona University
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
+ - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
+         metadata backup that could fail if special characters encountered
  - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
-         python version in XenServer 6.X
- - v3.2 2017/09/12 Fix wildcard handling and excludes for both VM and VDI
-        cases, add email retries.
- - v3.1 2016/11/26 Replaced prefix wildcard option with python regex wildcards.
- - v3.0 2016/03/04 Added vdi-export and VM prefix wildcards.
- - v2.1 2014/08/22 Added email status option.
- - v2.0 2014/04/09 New VmBackup version supersedes all previous NAU Backup
-        releases.
+          python version in XenServer 6.X
+ - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
+         cases, add email retries.
+ - v3.1  2016/11/26 Replaced prefix wildcard option with python regex wildcards.
+ - v3.0  2016/03/04 Added vdi-export and VM prefix wildcards.
+ - v2.1  2014/08/22 Added email status option.
+ - v2.0  2014/04/09 New VmBackup version supersedes all previous NAU Backup
+         releases.
 
 NAUbackup Authors --
 NAU/ITS Department:
@@ -63,6 +65,8 @@ NAU/ITS Department:
  - Regex checking for wildcard expansion for includes and excludes fixed and made to work also for VDI in addition to VM cases, including null results.
  - Added better handling of sending email with retries incorporated.
  - Minor documentation fixes in the code.
+ - v3.21: Fix "except socket.error" syntax to also work with older python version in XenServer 6.X.
+ - v3.22: Add full VM metadata dump to XML file to replace VM metadata backup that could fail if special characters encountered.
 
 ## Release 3.1 Summary
 
@@ -443,7 +447,7 @@ For any individual VmBackup.py run, then any single VM should preferably not be 
 
 ### VM Backup Directory Structure
 
-The VM backup directory has this format %BACKUP_DIR%/vm-name/date-time/ and each VM backup directory contains the vm backup file plus additional VM metadata. 
+The VM backup directory has this format %BACKUP_DIR%/vm-name/date-time/ and each VM backup directory contains the VM backup file plus additional VM metadata, including with V3.22 a full XML dump of the VM metadata. 
 
 Each successful backup directory is marked by a touched file of `success` and in some special cases may include `success_other-actions`. These situations may be reviewed in the VmBackup code.
 
