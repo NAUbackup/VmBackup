@@ -36,6 +36,8 @@
 # Version History
 # - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
 #         metadata backup that could fail if special characters encountered
+#         Added name_description UNICODE fix. (2018-Mar-20)
+#         Fixed bug in global definitions for vdi-export case. (2018-Mar-20)
 # - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
 #         python version in XenServer 6.X
 # - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
@@ -557,11 +559,11 @@ def verify_vm_name(tmp_vm_name):
 
 def gather_vm_meta(vm_object, tmp_full_backup_dir):
     global vm_uuid
-#    global xvda_uuid
-#    global xvda_name_label
+    global xvda_uuid
+    global xvda_name_label
     vm_uuid = ''
-#    xvda_uuid = ''
-#    xvda_name_label = ''
+    xvda_uuid = ''
+    xvda_name_label = ''
     tmp_error = '';
 
     vm_record = session.xenapi.VM.get_record(vm_object)
@@ -642,8 +644,10 @@ def gather_vm_meta(vm_object, tmp_full_backup_dir):
 
         # now write out the vdi info.
         vdi_out = open('%s/vdi.cfg' % device_path, 'w')
-        vdi_out.write('name_label=%s\n' % vdi_record['name_label'])
-        vdi_out.write('name_description=%s\n' % vdi_record['name_description'])
+        #vdi_out.write('name_label=%s\n' % vdi_record['name_label'])
+        vdi_out.write('name_label=%s\n' % (vdi_record['name_label']).encode("utf-8"))
+        # vdi_out.write('name_description=%s\n' % vdi_record['name_description'])
+        vdi_out.write('name_description=%s\n' % (vdi_record['name_description']).encode("utf-8"))
         vdi_out.write('virtual_size=%s\n' % vdi_record['virtual_size'])
         vdi_out.write('type=%s\n' % vdi_record['type'])
         vdi_out.write('sharable=%s\n' % vdi_record['sharable'])
