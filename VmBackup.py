@@ -65,7 +65,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket, signal
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -1370,32 +1370,41 @@ def usage_examples():
     print
 
 def read_char_non_block(file_object,Block=True):
-  if Block or select.select([file_object], [], [], 0) == ([file_object], [], []):
-    char = file_object.read(1)
-    return char
-  raise error('Could not read password from stream')
-
-import time
+  timeout=1
+  signal.signal(signal.SIGALRM, input)
+  signal.alarm(timeout)
+  try:
+    if Block or select.select([file_object], [], [], 0) == ([file_object], [], []):
+      return file_object.read(1)
+  except:
+      return
 
 def read_password_from_stdin():
   password=""
   while True:
-    char = read_char_non_block(sys.stdin,True)
+    char = read_char_non_block(sys.stdin)
     if char:
        password += char
     else:
-       return password.rstrip()
+	if len(password) > 0:
+	  return password.rstrip()
+	else:
+          return
 
 def get_password(password_arg):
 
     # read password from stdin if password_arg is a dash("-")
     if password_arg == "-":
-       return read_password_from_stdin()
+	password = read_password_from_stdin()
+        if password:
+          return password
+        else:
+          raise "FATAL: Could not get password from stdin"
 
     # return base64-decoded file content if password_arg is an existing file
     if (os.path.exists(password)): 
-        password = base64.b64decode(open(password, 'r').read())
-       return password
+      password = base64.b64decode(open(password, 'r').read())
+      return password
 
     # else take the given password_arg as clear text password
     return pasword_arg
