@@ -1369,6 +1369,37 @@ def usage_examples():
     print '  ./VmBackup.py /root/VmBackup.pass monthly.cfg'
     print
 
+def read_char_non_block(file_object,Block=True):
+  if Block or select.select([file_object], [], [], 0) == ([file_object], [], []):
+    char = file_object.read(1)
+    return char
+  raise error('Could not read password from stream')
+
+import time
+
+def read_password_from_stdin():
+  password=""
+  while True:
+    char = read_char_non_block(sys.stdin,True)
+    if char:
+       password += char
+    else:
+       return password.rstrip()
+
+def get_password(password_arg):
+
+    # read password from stdin if password_arg is a dash("-")
+    if password_arg == "-":
+       return read_password_from_stdin()
+
+    # return base64-decoded file content if password_arg is an existing file
+    if (os.path.exists(password)): 
+        password = base64.b64decode(open(password, 'r').read())
+       return password
+
+    # else take the given password_arg as clear text password
+    return pasword_arg
+
 if __name__ == '__main__':
     if 'help' in sys.argv or 'config' in sys.argv or 'example' in sys.argv:
         if 'help' in sys.argv: usage_help() 
@@ -1378,11 +1409,9 @@ if __name__ == '__main__':
     if len(sys.argv) < 3:
         usage()
         sys.exit(1)
-    password = sys.argv[1]
+    password = get_password(sys.argv[1])
     cfg_file = sys.argv[2]
     # obscure password support
-    if (os.path.exists(password)): 
-        password = base64.b64decode(open(password, 'r').read())
     if cfg_file.lower().startswith('create-password-file'):
         array = sys.argv[2].strip().split('=')
         open(array[1], 'w').write(base64.b64encode(password))
