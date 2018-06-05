@@ -17,11 +17,13 @@ Copyright (C) 2017  Northern Arizona University
 
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
+**IMPORTANT DISCLAIMER: THIS IS A BETA VERSION, NOT READY FOR PRODUCTION
+
 ## Version History:
+ - v3.23 2018-June Find any duplicate VMs and report errors plus improve
+         means to collect all VMs. Add hostname to email report.
  - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
-         metadata backup that could fail if special characters encountered.
-         Added name_description UNICODE fix. (2018-Mar-20)
-         Fixed bug in global definitions for vdi-export case. (2018-Mar-20)
+         metadata backup that could fail if special characters encountered
  - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
           python version in XenServer 6.X
  - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
