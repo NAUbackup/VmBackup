@@ -20,8 +20,12 @@ Copyright (C) 2018  Northern Arizona University
 **IMPORTANT DISCLAIMER: THIS IS A BETA VERSION, NOT READY FOR PRODUCTION
 
 ## Version History:
- - v3.23 2018-June Find any duplicate VMs and report errors plus improve
-         means to collect all VMs. Add hostname to email report.
+ - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
+         names (potentially conflicting with snapshots),
+         Add pre_check option to delete oldest backups beforehand,
+         fix subtle bug in pre-removing non-existing VMs from exclude list,
+         add hostname to email subject line
+
  - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
          metadata backup that could fail if special characters encountered
  - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older

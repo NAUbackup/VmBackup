@@ -37,9 +37,10 @@
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
 # - v3.23 2018/05/26 Add preview check and execution check for duplicate VM
-#         Fix subtle bug in pre-removing non-existing VMs from exclude list,
 #         names (potentially conflicting with snapshots),
-#         Add hostname to email subject line
+#         Add pre_check option to delete oldest backups beforehand,
+#         fix subtle bug in pre-removing non-existing VMs from exclude list,
+#         add hostname to email subject line
 # - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
 #         metadata backup that could fail if special characters encountered
 #         Added name_description UNICODE fix. (2018-Mar-20)
@@ -233,7 +234,11 @@ def main(session):
             if run_log_out_wait_rc(cmd) != 0:
                 log('WARNING %s' % cmd)
                 this_status = 'warning'
-                # non-fatal - finsh processing for this vm
+                # non-fatal - finish processing for this vm
+
+        # === pre_cleanup code goes in here ===
+        if pre_clean:
+           pre_cleanup ( vm_backup_dir, vm_max_backups)
 
         # take a vdi-snapshot of this vm
         cmd = '%s/xe vdi-snapshot uuid=%s' % (xe_path, xvda_uuid)
@@ -388,6 +393,12 @@ def main(session):
                 if config_specified:
                     status_log_vm_export_end(server_name, 'VM-UNINSTALL-FAIL-1 %s' % vm_name)
                 # non-fatal - finsh processing for this vm
+
+        # === pre_cleanup code goes in here ===
+        #print 'vm_backup_dir: %s' % vm_backup_dir
+        #print 'vm_max_backups: %s' % vm_max_backups
+        if pre_clean:
+           pre_cleanup (vm_backup_dir, vm_max_backups)
 
         # take a vm-snapshot of this vm
         cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
@@ -556,11 +567,8 @@ def get_vm_name(vm_parm):
 def verify_vm_name(tmp_vm_name):
     vm = session.xenapi.VM.get_by_name_label(tmp_vm_name)
     vmref = [x for x in session.xenapi.VM.get_by_name_label(tmp_vm_name) if not session.xenapi.VM.get_is_a_snapshot(x)]
-    #print "length = %s " % len(vmref)
-    cmd = '/bin/echo %s' % vmref
-    res = run_get_lastline(cmd)
     if (len(vmref) > 1):
-       log ("ERROR: Duplicate VM name found: %s | %s" % (tmp_vm_name, res))
+       log ("ERROR: Duplicate VM name found: %s | %s" % (tmp_vm_name, vmref))
        return 'ERROR more than one vm with the name %s' % tmp_vm_name
     elif (len(vm) == 0):
        return 'ERROR no machines found with the name %s' % tmp_vm_name
@@ -711,6 +719,26 @@ def final_cleanup( tmp_full_path_backup_file, tmp_backup_file_size, tmp_full_bac
         shutil.rmtree(tmp_vm_backup_dir + '/' + dir_to_remove)
         dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
 
+####  need to just feed in directory and find oldest named subdirectory
+### def pre_cleanup( tmp_full_path_backup_file, tmp_full_backup_dir, tmp_vm_backup_dir, tmp_vm_max_backups):
+def pre_cleanup(tmp_vm_backup_dir, tmp_vm_max_backups):
+  #print ' ==== tmp_full_backup_dir: %s' % tmp_full_backup_dir
+  #print ' ==== tmp_vm_backup_dir: %s' % tmp_vm_backup_dir
+  #print ' ==== tmp_vm_max_backups: %d' % tmp_vm_max_backups
+  log('success identifying directory : %s ' % tmp_vm_backup_dir)
+  # Remove oldest if more than tmp_vm_max_backups -1
+  pre_vm_max_backups = tmp_vm_max_backups - 1
+  log ("pre_VM_max_backups: %s " % pre_vm_max_backups)
+  if pre_vm_max_backups < 1:
+     log ('No pre_cleanup needed for %s ' % tmp_vm_backup_dir)
+  else:
+     dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
+     while (dir_to_remove):
+        log ('Deleting oldest backup %s/%s ' % (tmp_vm_backup_dir, dir_to_remove))
+        # remove dir - if throw exception then stop processing
+        shutil.rmtree(tmp_vm_backup_dir + '/' + dir_to_remove)
+        dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
+
 # cleanup old unsuccessful backup and create new full_backup_dir
 def process_backup_dir(tmp_vm_backup_dir):
 
@@ -719,6 +747,7 @@ def process_backup_dir(tmp_vm_backup_dir):
         os.mkdir(tmp_vm_backup_dir)
 
     # if last backup was not successful, then delete it
+    log ('Check for last **unsuccessful** backup: %s' % tmp_vm_backup_dir)
     dir_not_success = get_last_backup_dir_that_failed(tmp_vm_backup_dir)
     if (dir_not_success):
         #if (not os.path.exists(tmp_vm_backup_dir + '/' + dir_not_success + '/fail')):
@@ -780,6 +809,7 @@ def get_last_backup_dir_that_failed(path):
         return False
     dirs.sort()
     # note: dirs[-1] is the last entry
+    #print "==== dirs that failed: %s" % dirs
     if (not os.path.exists(path + '/' + dirs[-1] + '/success')) and \
         (not os.path.exists(path + '/' + dirs[-1] + '/success_restore')) and \
         (not os.path.exists(path + '/' + dirs[-1] + '/success_compress' )) and \
@@ -1421,6 +1451,7 @@ if __name__ == '__main__':
     preview = False                 # default
     compress = False                # default
     ignore_extra_keys = False       # default
+    pre_clean = False             # default
 
     # loop through remaining optional args
     arg_range = range(3,len(sys.argv))
@@ -1432,6 +1463,8 @@ if __name__ == '__main__':
             compress = (array[1].lower() == 'true')
         elif array[0].lower() == 'ignore_extra_keys':
             ignore_extra_keys = (array[1].lower() == 'true')
+        elif array[0].lower() == 'pre_clean':
+            pre_clean = (array[1].lower() == 'true')
         else:
             print 'ERROR invalid parm: %s' % sys.argv[arg_ix]
             usage()
@@ -1500,11 +1533,8 @@ if __name__ == '__main__':
        log('Checking all VMs for duplicate names ...')
        for vm in all_vms:
           vmref = [x for x in session.xenapi.VM.get_by_name_label(vm) if not session.xenapi.VM.get_is_a_snapshot(x)]
-          # put into new variable this way, or cannot parse
-          cmd = '/bin/echo %s' % vmref
-          res = run_get_lastline(cmd)
           if (len(vmref) > 1):
-             log ("*** ERROR: Duplicate VM name found: %s | %s" % (vm, res))
+             log ("*** ERROR: Duplicate VM name found: %s | %s" % (vm, vmref))
 
     if not verify_config_vms_exist():
         # error message(s) printed in verify_config_vms_exist
