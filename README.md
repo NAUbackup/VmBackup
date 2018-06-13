@@ -167,6 +167,7 @@ These new features have been added:
   		[preview] - preview/validate VmBackup config parameters and xenserver password
   		[compress=True|False] - only for vm-export functions automatic compression (default: False)
   		[ignore_extra_keys=True|False] - some config files may have extra params (default: False)
+  		[pre_check=True|False] - delete oldest backups beforehand, down to the retention level if needed (default: False)
 
 	alternate form - create-password-file:
 	./VmBackup.py  <password> create-password-file=filename
