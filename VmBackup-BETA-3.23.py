@@ -1349,6 +1349,7 @@ def usage_help():
     print '  [preview] - preview/validate VmBackup config parameters and xenserver password'
     print '  [compress=True|False] - only for vm-export functions automatic compression (default: False)'
     print '  [ignore_extra_keys=True|False] - some config files may have extra params (default: False)'
+    print '  [pre_clean=True|False] - delete older backup(s) before performing new backup (default: False)'
     print
     print 'alternate form - create-password-file:'
     print sys.argv[0], ' <password> create-password-file=filename'
