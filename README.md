@@ -22,7 +22,7 @@ Copyright (C) 2018  Northern Arizona University
 ## Version History:
  - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
          names (potentially conflicting with snapshots),
-         Add pre_check option to delete oldest backups beforehand,
+         Add pre_clean option to delete oldest backups beforehand,
          fix subtle bug in pre-removing non-existing VMs from exclude list,
          add hostname to email subject line
 
@@ -167,7 +167,7 @@ These new features have been added:
   		[preview] - preview/validate VmBackup config parameters and xenserver password
   		[compress=True|False] - only for vm-export functions automatic compression (default: False)
   		[ignore_extra_keys=True|False] - some config files may have extra params (default: False)
-  		[pre_check=True|False] - delete oldest backups beforehand, down to the retention level if needed (default: False)
+  		[pre_clean=True|False] - delete oldest backups beforehand, down to the retention level if needed (default: False)
 
 	alternate form - create-password-file:
 	./VmBackup.py  <password> create-password-file=filename

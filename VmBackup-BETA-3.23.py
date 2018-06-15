@@ -36,9 +36,9 @@
 # Title: NAUbackup/VmBackup - a XenServer vm-export & vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
-# - v3.23 2018/05/26 Add preview check and execution check for duplicate VM
+# - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
 #         names (potentially conflicting with snapshots),
-#         Add pre_check option to delete oldest backups beforehand,
+#         Add pre_clean option to delete oldest backups beforehand,
 #         fix subtle bug in pre-removing non-existing VMs from exclude list,
 #         add hostname to email subject line
 # - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
