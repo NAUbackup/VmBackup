@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.22 November 2017
+# V3.22.1 May 2019
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
@@ -10,11 +10,12 @@
 # Tobias Kreidl
 #
 # With external contributions gratefully made by:
-# @philippmk - 
+# @philippmk -
 # @ilium007 -
 # @HqWisen -
 # @JHag6694 -
 # @lancefogle - Lance Fogle
+# @gnanet - Gergely Nagy
 
 # Copyright (C) 2017  Northern Arizona University
 
@@ -34,6 +35,8 @@
 # Title: NAUbackup/VmBackup - a XenServer vm-export & vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
+# - v3.22.1 2019/05/24 Do not snapshot a stopped VM, rather set the vm-param
+#           blocked_operations:start during vm-export instead.
 # - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
 #         metadata backup that could fail if special characters encountered
 #         Added name_description UNICODE fix. (2018-Mar-20)
@@ -166,7 +169,7 @@ def main(session):
         full_backup_dir = process_backup_dir(vm_backup_dir)
 
         # gather_vm_meta produces status: empty or warning-message 
-        #   and globals: vm_uuid, xvda_uuid, xvda_uuid
+        #   and globals: vm_uuid, xvda_uuid, xvda_name_label
         #   => now only need: vm_uuid
         #   since all VM metadta go into an XML file
         vm_meta_status = gather_vm_meta(vm_object, full_backup_dir)
@@ -175,7 +178,7 @@ def main(session):
             this_status = 'warning'
             # non-fatal - finsh processing for this vm
 
-        # vdi-export only uses xvda_uuid, xvda_uuid
+        # vdi-export only uses xvda_uuid, xvda_name_label
         if xvda_uuid == '':
             log('ERROR gather_vm_meta has no xvda-uuid')
             if config_specified:
@@ -308,6 +311,7 @@ def main(session):
                 status_log_vdi_export_end(server_name, 'ERROR-INTERNAL %s,elapse:%s size:%sG' % (vm_name, str(elapseTime.seconds/60), backup_file_size))
 
     # end of for vm_parm in config['vdi-export']:
+    
     ######################################################################
 
 
@@ -365,76 +369,123 @@ def main(session):
         cmd = '%s/xe vm-list name-label="%s" params=power-state | /bin/grep running' % (xe_path, vm_name)
         if run_log_out_wait_rc(cmd) == 0:
             log ('vm is running')
-        else:
-            log ('vm is NOT running')
+            # check for old vm-snapshot for this vm
+            snap_name = 'RESTORE_%s' % vm_name
+            log ('check for prev-vm-snapshot: %s' % snap_name)
+            cmd = "%s/xe vm-list name-label='%s' params=uuid | /bin/awk -F': ' '{print $2}' | /bin/grep '-'" % (xe_path, snap_name)
+            old_snap_vm_uuid = run_get_lastline(cmd)
+            if old_snap_vm_uuid != '':
+                log ('cleanup old-snap-vm-uuid: %s' % old_snap_vm_uuid)
+                # vm-uninstall old vm-snapshot
+                cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, old_snap_vm_uuid)
+                log('cmd: %s' % cmd)
+                if run_log_out_wait_rc(cmd) != 0:
+                    log('WARNING-ERROR %s' % cmd)
+                    this_status = 'warning'
+                    if config_specified:
+                        status_log_vm_export_end(server_name, 'VM-UNINSTALL-FAIL-1 %s' % vm_name)
+                    # non-fatal - finsh processing for this vm
 
-        # check for old vm-snapshot for this vm
-        snap_name = 'RESTORE_%s' % vm_name
-        log ('check for prev-vm-snapshot: %s' % snap_name)
-        cmd = "%s/xe vm-list name-label='%s' params=uuid | /bin/awk -F': ' '{print $2}' | /bin/grep '-'" % (xe_path, snap_name)
-        old_snap_vm_uuid = run_get_lastline(cmd)
-        if old_snap_vm_uuid != '':
-            log ('cleanup old-snap-vm-uuid: %s' % old_snap_vm_uuid)
-            # vm-uninstall old vm-snapshot
-            cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, old_snap_vm_uuid)
-            log('cmd: %s' % cmd)
-            if run_log_out_wait_rc(cmd) != 0:
-                log('WARNING-ERROR %s' % cmd)
-                this_status = 'warning'
+            # take a vm-snapshot of this vm
+            cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
+            log('1.cmd: %s' % cmd)
+            snap_vm_uuid = run_get_lastline(cmd)
+            log ('snap-uuid: %s' % snap_vm_uuid)
+            if snap_vm_uuid == '':
+                log('ERROR %s' % cmd)
                 if config_specified:
-                    status_log_vm_export_end(server_name, 'VM-UNINSTALL-FAIL-1 %s' % vm_name)
+                    status_log_vm_export_end(server_name, 'SNAPSHOT-FAIL %s' % vm_name)
+                error_cnt += 1
+                # next vm
+                continue
+
+            # change vm-snapshot so that it can be referenced by vm-export
+            cmd = '%s/xe template-param-set is-a-template=false ha-always-run=false uuid=%s' % (xe_path, snap_vm_uuid)
+            log('2.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) != 0:
+                log('ERROR %s' % cmd)
+                if config_specified:
+                    status_log_vm_export_end(server_name, 'TEMPLATE-PARAM-SET-FAIL %s' % vm_name)
+                error_cnt += 1
+                # next vm
+                continue
+
+            # vm-export vm-snapshot
+            cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_vm_uuid)
+            if compress:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva.gz')
+                cmd = '%s filename="%s" compress=true' % (cmd, full_path_backup_file)
+            else:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva')
+                cmd = '%s filename="%s"' % (cmd, full_path_backup_file) 
+            log('3.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) == 0:
+                log('vm-export success')
+            else:
+                log('ERROR %s' % cmd)
+                if config_specified:
+                    status_log_vm_export_end(server_name, 'VM-EXPORT-FAIL %s' % vm_name)
+                error_cnt += 1
+                # next vm
+                continue
+
+            # vm-uninstall vm-snapshot
+            cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, snap_vm_uuid)
+            log('4.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) != 0:
+                log('WARNING %s' % cmd)
+                this_status = 'warning'
                 # non-fatal - finsh processing for this vm
 
-        # take a vm-snapshot of this vm
-        cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
-        log('1.cmd: %s' % cmd)
-        snap_vm_uuid = run_get_lastline(cmd)
-        log ('snap-uuid: %s' % snap_vm_uuid)
-        if snap_vm_uuid == '':
-            log('ERROR %s' % cmd)
-            if config_specified:
-                status_log_vm_export_end(server_name, 'SNAPSHOT-FAIL %s' % vm_name)
-            error_cnt += 1
-            # next vm
-            continue
+        else:
+            log ('vm is NOT running')
+            # Execute xe vm-param-set blocked-operations:start so that the VM cannot be started during vm-export
+            log ('Setting vm-param blocked-operations:start')
+            cmd = '%s/xe vm-param-set blocked-operations:start uuid=%s' % (xe_path, vm_uuid)
+            log('2.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) != 0:
+                log('ERROR %s' % cmd)
+                if config_specified:
+                    status_log_vm_export_end(server_name, 'VM-PARAM-SET-FAIL %s' % vm_name)
+                error_cnt += 1
+                # next vm
+                continue
 
-        # change vm-snapshot so that it can be referenced by vm-export
-        cmd = '%s/xe template-param-set is-a-template=false ha-always-run=false uuid=%s' % (xe_path, snap_vm_uuid)
-        log('2.cmd: %s' % cmd)
-        if run_log_out_wait_rc(cmd) != 0:
-            log('ERROR %s' % cmd)
-            if config_specified:
-                status_log_vm_export_end(server_name, 'TEMPLATE-PARAM-SET-FAIL %s' % vm_name)
-            error_cnt += 1
-            # next vm
-            continue
-    
-        # vm-export vm-snapshot
-        cmd = '%s/xe vm-export uuid=%s' % (xe_path, snap_vm_uuid)
-        if compress:
-            full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva.gz')
-            cmd = '%s filename="%s" compress=true' % (cmd, full_path_backup_file)
-        else:
-            full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva')
-            cmd = '%s filename="%s"' % (cmd, full_path_backup_file) 
-        log('3.cmd: %s' % cmd)
-        if run_log_out_wait_rc(cmd) == 0:
-            log('vm-export success')
-        else:
-            log('ERROR %s' % cmd)
-            if config_specified:
-                status_log_vm_export_end(server_name, 'VM-EXPORT-FAIL %s' % vm_name)
-            error_cnt += 1
-            # next vm
-            continue
-    
-        # vm-uninstall vm-snapshot
-        cmd = '%s/xe vm-uninstall uuid=%s force=true' % (xe_path, snap_vm_uuid)
-        log('4.cmd: %s' % cmd)
-        if run_log_out_wait_rc(cmd) != 0:
-            log('WARNING %s' % cmd)
-            this_status = 'warning'
-            # non-fatal - finsh processing for this vm
+            # vm-export
+            cmd = '%s/xe vm-export uuid=%s' % (xe_path, vm_uuid)
+            if compress:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva.gz')
+                cmd = '%s filename="%s" compress=true' % (cmd, full_path_backup_file)
+            else:
+                full_path_backup_file = os.path.join(full_backup_dir, vm_name + '.xva')
+                cmd = '%s filename="%s"' % (cmd, full_path_backup_file) 
+            log('3.cmd: %s' % cmd)
+            if run_log_out_wait_rc(cmd) == 0:
+                log('vm-export success, REMEMBER: after import clear VM-param blocked-operations')
+                open('%s/after_import_clear_blocked-operations' % tmp_full_backup_dir, 'w').close()
+                # Execute xe vm-param-clear param-name=blocked-operations to allow VM start again
+                log ('Clearing vm-param blocked-operations')
+                cmd = '%s/xe vm-param-clear param-name=blocked-operations uuid=%s' % (xe_path, vm_uuid)
+                log('4.cmd: %s' % cmd)
+                if run_log_out_wait_rc(cmd) != 0:
+                    log('WARNING %s' % cmd)
+                    this_status = 'warning'
+                    # non-fatal - finsh processing for this vm
+            else:
+                log('ERROR %s' % cmd)
+                if config_specified:
+                    status_log_vm_export_end(server_name, 'VM-EXPORT-FAIL %s' % vm_name)
+                error_cnt += 1
+                # Execute xe vm-param-clear param-name=blocked-operations to allow VM start again
+                log ('Clearing vm-param blocked-operations')
+                cmd = '%s/xe vm-param-clear param-name=blocked-operations uuid=%s' % (xe_path, vm_uuid)
+                log('4.cmd: %s' % cmd)
+                if run_log_out_wait_rc(cmd) != 0:
+                    log('WARNING %s' % cmd)
+                    this_status = 'warning'
+                    # non-fatal - finsh processing for this vm
+                # next vm
+                continue
 
         log ('*** vm-export end')
         # --- end vm-export command sequence ---
