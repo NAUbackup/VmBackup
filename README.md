@@ -18,7 +18,7 @@ Copyright (C) 2019  Northern Arizona University
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
- - v3.24 2019/04/23 Fix additional deduplication and exclude issues
+ - v3.24 2019/06/21 Fix additional deduplication and exclude issues
  - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
          names (potentially conflicting with snapshots),
          Add pre_clean option to delete oldest backups beforehand,
