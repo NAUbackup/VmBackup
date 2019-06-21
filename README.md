@@ -1,4 +1,4 @@
-Copyright (C) 2017  Northern Arizona University
+Copyright (C) 2019  Northern Arizona University
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,11 +17,18 @@ Copyright (C) 2017  Northern Arizona University
 
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
+**IMPORTANT DISCLAIMER: THIS IS A BETA VERSION, NOT READY FOR PRODUCTION
+
 ## Version History:
+ - v3.24 2019/04/23 Fix additional deduplication and exclude issues
+ - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
+         names (potentially conflicting with snapshots),
+         Add pre_clean option to delete oldest backups beforehand,
+         fix subtle bug in pre-removing non-existing VMs from exclude list,
+         add hostname to email subject line
+
  - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
-         metadata backup that could fail if special characters encountered.
-         Added name_description UNICODE fix. (2018-Mar-20)
-         Fixed bug in global definitions for vdi-export case. (2018-Mar-20)
+         metadata backup that could fail if special characters encountered
  - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
           python version in XenServer 6.X
  - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
@@ -120,7 +127,7 @@ These new features have been added:
    - To verfy XenApi, execute VmBackup with a valid password and some simple vm-name.
    - Example: ./VmBackup.py password vm-name preview 
    - Note: if password has any special characters, then escape with back slash: ./VmBackup.py pass\$word vm-name
-7. Follow some VmBackup usage examples in the next section and try some examples with your VMs. Initially use the `preview` option, followed by a non-preview execution to actually see the VM export process. If you have a test XenServer environment, then utilize this for test verification.
+7. Follow some VmBackup usage examples in the next section and try some examples with your VMs. Initially use the `preview` option, followed by a non-preview execution to actually see the VM export process. If you have a test XenServer environment, then utilize this for test verification. Note that if multiple definitions of VMs and/or VDIs are put into the configuration file, the last valid definition will take precedence over any earlier detected definitions. In addition, excludes will take precedence over any backup definitions.
 8. VM Recovery testing is an important part of the setup, see later section. Become familiar with the /snapshots/BACKUPS/vm-name directory structure and file contents, also in later section. After backing up some VMs then restore them on a test system and verify VM functionality.
 9. Plan your backup strategy, such as weekly, bi-monthly, monthly frequencies. How many copies of each backup do you want to keep? How long do your backup configurations take to execute and does this fit in with your XenServer processing priorities?
 10. Execute your plan which typically involves setting up a XenServer crontab schedule, see later section.
@@ -161,6 +168,7 @@ These new features have been added:
   		[preview] - preview/validate VmBackup config parameters and xenserver password
   		[compress=True|False] - only for vm-export functions automatic compression (default: False)
   		[ignore_extra_keys=True|False] - some config files may have extra params (default: False)
+  		[pre_clean=True|False] - delete oldest backups beforehand, down to the retention level if needed (default: False)
 
 	alternate form - create-password-file:
 	./VmBackup.py  <password> create-password-file=filename
@@ -418,7 +426,7 @@ Note that there are numerous combinations that may possily conflict with each ot
 
 ### Python REGEX Syntax Errors
 
-In the even of a regex error, the script will deliberately fail as otherwise, results may be unpredictable and/or undesirabrle. Regex errors will be shown when using the preview option, and it is recommended to check the syntax ahead of implementing any scripts into actual use. For example, if instead of vm-export=PRD-[aA].* you had created a line reading vm-export=PRD-[aA.* (with a missing square bracket), the resulting error message would include output similar to this:
+In the event of a regex error, the script will deliberately fail as otherwise, results may be unpredictable and/or undesirabrle. Regex errors will be shown when using the preview option, and it is recommended to check the syntax ahead of implementing any scripts into actual use. For example, if instead of vm-export=PRD-[aA].* you had created a line reading vm-export=PRD-[aA.* (with a missing square bracket), the resulting error message would include output similar to this:
 
 2016-11-03-(12:34:02) - ***ERROR - invalid regex: vm-export=PRD-[aA.*
 .
@@ -556,9 +564,9 @@ which should give you an export list that includes your XenServer(s)
 Finally, a "mount -a" command should mount the NFS area and a "df" comman
 should show it visble on each of your XenServers
 
-Make sure to update the NFS mount point definition in any VmBacku
-configuration (.cfg) file(s) you make use of if you do not use the defaul
-settings. For example, to match the above coniguration, you could overrid
+Make sure to update the NFS mount point definition in any VmBackup
+configuration (.cfg) file(s) you make use of if you do not use the default
+settings. For example, to match the above coniguration, you could override
 the default by adding the line
 
 backup_dir='/snapshots/xspool2

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.22 November 2017
+# V3.24 June 2018
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
@@ -15,8 +15,9 @@
 # @HqWisen -
 # @JHag6694 -
 # @lancefogle - Lance Fogle
+# Tom McKelvey
 
-# Copyright (C) 2017  Northern Arizona University
+# Copyright (C) 2019  Northern Arizona University
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,6 +35,12 @@
 # Title: NAUbackup/VmBackup - a XenServer vm-export & vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
+# - v3.24 2019/04/19 Fix lingering duplicate VM issues
+# - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
+#         names (potentially conflicting with snapshots),
+#         Add pre_clean option to delete oldest backups beforehand,
+#         fix subtle bug in pre-removing non-existing VMs from exclude list,
+#         add hostname to email subject line
 # - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
 #         metadata backup that could fail if special characters encountered
 #         Added name_description UNICODE fix. (2018-Mar-20)
@@ -65,7 +72,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket, threading
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -227,7 +234,11 @@ def main(session):
             if run_log_out_wait_rc(cmd) != 0:
                 log('WARNING %s' % cmd)
                 this_status = 'warning'
-                # non-fatal - finsh processing for this vm
+                # non-fatal - finish processing for this vm
+
+        # === pre_cleanup code goes in here ===
+        if pre_clean:
+           pre_cleanup ( vm_backup_dir, vm_max_backups)
 
         # take a vdi-snapshot of this vm
         cmd = '%s/xe vdi-snapshot uuid=%s' % (xe_path, xvda_uuid)
@@ -327,8 +338,6 @@ def main(session):
         if config_specified:
             status_log_vm_export_begin(server_name, '%s' % vm_name)
 
-        # verify vm_name exists with only one instance for this name
-        #  returns error-message or vm_object if success
         vm_object = verify_vm_name(vm_name)
         if 'ERROR' in vm_object:
             log('verify_vm_name: %s' % vm_object)
@@ -384,6 +393,12 @@ def main(session):
                 if config_specified:
                     status_log_vm_export_end(server_name, 'VM-UNINSTALL-FAIL-1 %s' % vm_name)
                 # non-fatal - finsh processing for this vm
+
+        # === pre_cleanup code goes in here ===
+        #print 'vm_backup_dir: %s' % vm_backup_dir
+        #print 'vm_max_backups: %s' % vm_max_backups
+        if pre_clean:
+           pre_cleanup (vm_backup_dir, vm_max_backups)
 
         # take a vm-snapshot of this vm
         cmd = '%s/xe vm-snapshot vm=%s new-name-label="%s"' % (xe_path, vm_uuid, snap_name)
@@ -480,21 +495,21 @@ def main(session):
         if config_specified:
             status_log_end(server_name, 'ERROR,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email(MAIL_TO_ADDR, 'ERROR VmBackup.py', status_log)
+            #send_email(MAIL_TO_ADDR, 'ERROR ' + os.uname()[1] + ' VmBackup.py', status_log)
             #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - **ERRORS DETECTED** - %s' % summary)
     elif (warning_cnt > 0):
         if config_specified:
             status_log_end(server_name, 'WARNING,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email(MAIL_TO_ADDR,'WARNING VmBackup.py', status_log)
+            #send_email(MAIL_TO_ADDR,'WARNING ' + os.uname()[1] + ' VmBackup.py', status_log)
             #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - **WARNING(s)** - %s' % summary)
     else:
         if config_specified:
             status_log_end(server_name, 'SUCCESS,%s' % summary)
             # MAIL_ENABLE: optional email may be enabled by uncommenting out the next two lines
-            #send_email(MAIL_TO_ADDR, 'Success VmBackup.py', status_log)
+            #send_email(MAIL_TO_ADDR, 'Success ' + os.uname()[1] + ' VmBackup.py', status_log)
             #open('%s' % status_log, 'w').close() # trunc status log after email
         log('VmBackup ended - Success - %s' % summary)
 
@@ -551,10 +566,12 @@ def get_vm_name(vm_parm):
 
 def verify_vm_name(tmp_vm_name):
     vm = session.xenapi.VM.get_by_name_label(tmp_vm_name)
-    if (len(vm) > 1):
-        return 'ERROR more than one vm with the name %s' % tmp_vm_name
+    vmref = [x for x in session.xenapi.VM.get_by_name_label(tmp_vm_name) if not session.xenapi.VM.get_is_a_snapshot(x)]
+    if (len(vmref) > 1):
+       log ("ERROR: duplicate VM name found: %s | %s" % (tmp_vm_name, vmref))
+       return 'ERROR more than one vm with the name %s' % tmp_vm_name
     elif (len(vm) == 0):
-        return 'ERROR no machines found with the name %s' % tmp_vm_name
+       return 'ERROR no machines found with the name %s' % tmp_vm_name
     return vm[0]
 
 def gather_vm_meta(vm_object, tmp_full_backup_dir):
@@ -702,6 +719,26 @@ def final_cleanup( tmp_full_path_backup_file, tmp_backup_file_size, tmp_full_bac
         shutil.rmtree(tmp_vm_backup_dir + '/' + dir_to_remove)
         dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
 
+####  need to just feed in directory and find oldest named subdirectory
+### def pre_cleanup( tmp_full_path_backup_file, tmp_full_backup_dir, tmp_vm_backup_dir, tmp_vm_max_backups):
+def pre_cleanup(tmp_vm_backup_dir, tmp_vm_max_backups):
+  #print ' ==== tmp_full_backup_dir: %s' % tmp_full_backup_dir
+  #print ' ==== tmp_vm_backup_dir: %s' % tmp_vm_backup_dir
+  #print ' ==== tmp_vm_max_backups: %d' % tmp_vm_max_backups
+  log('success identifying directory : %s ' % tmp_vm_backup_dir)
+  # Remove oldest if more than tmp_vm_max_backups -1
+  pre_vm_max_backups = tmp_vm_max_backups - 1
+  log ("pre_VM_max_backups: %s " % pre_vm_max_backups)
+  if pre_vm_max_backups < 1:
+     log ('No pre_cleanup needed for %s ' % tmp_vm_backup_dir)
+  else:
+     dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
+     while (dir_to_remove):
+        log ('Deleting oldest backup %s/%s ' % (tmp_vm_backup_dir, dir_to_remove))
+        # remove dir - if throw exception then stop processing
+        shutil.rmtree(tmp_vm_backup_dir + '/' + dir_to_remove)
+        dir_to_remove = get_dir_to_remove(tmp_vm_backup_dir, tmp_vm_max_backups)
+
 # cleanup old unsuccessful backup and create new full_backup_dir
 def process_backup_dir(tmp_vm_backup_dir):
 
@@ -710,6 +747,7 @@ def process_backup_dir(tmp_vm_backup_dir):
         os.mkdir(tmp_vm_backup_dir)
 
     # if last backup was not successful, then delete it
+    log ('Check for last **unsuccessful** backup: %s' % tmp_vm_backup_dir)
     dir_not_success = get_last_backup_dir_that_failed(tmp_vm_backup_dir)
     if (dir_not_success):
         #if (not os.path.exists(tmp_vm_backup_dir + '/' + dir_not_success + '/fail')):
@@ -771,6 +809,7 @@ def get_last_backup_dir_that_failed(path):
         return False
     dirs.sort()
     # note: dirs[-1] is the last entry
+    #print "==== dirs that failed: %s" % dirs
     if (not os.path.exists(path + '/' + dirs[-1] + '/success')) and \
         (not os.path.exists(path + '/' + dirs[-1] + '/success_restore')) and \
         (not os.path.exists(path + '/' + dirs[-1] + '/success_compress' )) and \
@@ -988,17 +1027,28 @@ def save_to_config_exclude( key, vm_name):
         log("***ERROR - invalid regex: %s=%s" % (key, vm_name))
         error_regex = True
         return
+    #for vm in all_vms:
+    #    if ((isNormalVmName(vm_name) and vm_name == vm) or
+    #        (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
+    #        found_match = True
+    #        config[key].append(vm)
     for vm in all_vms:
+
         if ((isNormalVmName(vm_name) and vm_name == vm) or
             (not isNormalVmName(vm_name) and re.match(vm_name, vm))):
             found_match = True
             config[key].append(vm)
+
     if not found_match:
         log("***WARNING - vm not found: %s=%s" % (key, vm_name))
         warning_match = True
     else:
         for vm in config[key]:
-            all_vms.remove(vm)
+            try:
+               all_vms.remove(vm)
+            except:
+               pass
+               #print "VM not found -- ignore"
 
 def save_to_config_export( key, value):
     # save key/value in config[]
@@ -1157,8 +1207,112 @@ def cleanup_vmexport_vdiexport_dups():
         for vm_parm in config['vm-export']:
             tmp_vm_parm = get_vm_name(vm_parm)
             if tmp_vm_parm == tmp_vdi_parm:
-                log('***WARNING vdi-export dup - remove vm-export=%s' % vm_parm) #debug
+                log('***WARNING vdi-export duplicate - removing vm-export=%s' % vm_parm)
                 config['vm-export'].remove(vm_parm)
+    # remove duplicates
+    config['vdi-export']=RemoveDup(config['vdi-export'])
+    config['vm-export']=RemoveDup(config['vm-export'])
+
+def RemoveDup(duplicate):
+  # OK, this access to excludes works, good! Can use internally then.
+  #print 'exclude list: %s ' % config['exclude']
+  #print 'exclude element 0: %s' % config['exclude'][0]
+  #print 'exclude element 1: %s' % config['exclude'][1]
+  final_list=[]
+  for val in duplicate:
+    ##print '===== val: %s' % val
+
+    # check if version exists and if so, take account of extra versions
+    # as well as if a numbered wildcarded version already exists!
+    versioned=0
+    accounted=0
+    # version flag here for debugging and tracking purposes, only
+    if (val.find(':')!=-1):
+       # found version in new VM entry and need to expand
+       (valroot,numb) = val.split(':')
+       ##print 'found version to check: %s %s' % (val, valroot)
+       versioned=1
+    else:
+       versioned=0
+       # set root to be the same
+       valroot=val
+       ##print 'valroot set to be val if simple name: %s' % valroot
+
+    # Need to replace old with new if found
+    # Redo list and replace with new value
+    # Loop on index, starting with 0 and if root is the same,
+    # sub in new value; last index in array is len(array)-1 since len(array)
+    # is the number of elements in an array.
+    alen=len(final_list)
+    i=0
+    # # #
+    while i < alen:
+       if (final_list[i].find(':')!=-1):
+         (finroot,fnumb)= final_list[i].split(':')
+       else:
+         finroot=final_list[i]
+         ##print 'index: val, valroot, final_list, finroot: %s %s %s %s %s ' % (i, val, valroot, final_list[i], finroot)
+       if (valroot == finroot):
+          #root matches, hence replace
+          ##print '*** Replacing final_list with val, i: %s %s %s' % (final_list[i], val, i)
+          final_list[i]=val
+
+          # check again if excluded
+          ##print 'check again if excluded ........'
+          j=0
+          elen=len(config['exclude'])
+          while j < elen:
+             eroot=config['exclude'][j]
+             ##print 'valroot:%s' % valroot
+             ##print 'eroot:%s' % eroot
+             ##print 'final_list[i]:%s' % final_list[i]
+             ##print 'val:%s' % val
+             if (valroot == eroot):
+                # remove from list
+                log ('***WARNING - forcing exclude of: %s ' % final_list[i])
+                accounted=1
+                final_list.remove(final_list[i])
+                break
+             else:
+                j=j+1
+
+          # VM has been accounted for
+          accounted=1
+          ##print 'VM (val) has been accounted for, accounted: %s %s' % (val, accounted)
+          break
+       else:
+          i=i+1
+
+    # need to check plain case if not accounted for yet
+    ##print 'Not found anywhere else... accounted=%s' % accounted
+    # However, check again if excluded and if so, do not add to list
+    ##print 'check YET again if excluded !!!!!!!!'
+    j=0
+    elen=len(config['exclude'])
+    while j < elen:
+       eroot=config['exclude'][j]
+       ##print 'valroot:%s' % valroot
+       ##print 'eroot:%s' % eroot
+       ###print 'final_list[i]:%s' % final_list[i]
+       ##print 'val:%s' % val
+       if (valroot == eroot):
+          # prevent from being added back onto the list
+          log ('***WARNING - forcing exclude of: %s ' % val)
+          accounted=1
+          ##print '=== Force accounted to be on:%s' % accounted
+          break
+       else:
+          j=j+1
+
+    if (accounted == 0):
+      if val not in final_list:
+        final_list.append(val)
+        ##print ' end block -- appended val to list: %s' % val
+      else:
+        # it should now never actually get here!
+        print 'SHOULD NEVER GET HERE  ----- found duplicate: %s' % val
+
+  return final_list
 
 def config_load_defaults():
     # init config param not already loaded then load with default values
@@ -1291,6 +1445,7 @@ def usage_help():
     print '  [preview] - preview/validate VmBackup config parameters and xenserver password'
     print '  [compress=True|False] - only for vm-export functions automatic compression (default: False)'
     print '  [ignore_extra_keys=True|False] - some config files may have extra params (default: False)'
+    print '  [pre_clean=True|False] - delete older backup(s) before performing new backup (default: False)'
     print
     print 'alternate form - create-password-file:'
     print sys.argv[0], ' <password> create-password-file=filename'
@@ -1331,9 +1486,9 @@ def usage_config_file():
     print '  # special vdi-export - only backs up first disk. See README Documenation!'
     print '  vdi-export=my-vm-name'
     print
-    print '  # vm-export using VM regular expression - notice DEV* has :max_backups overide'
-    print '  vm-export=PROD*'
-    print '  vm-export=DEV*:2'
+    print '  # vm-export using VM regular expression - notice DEV.* has :max_backups overide'
+    print '  vm-export=PROD.*'
+    print '  vm-export=DEV.*:2'
     print
     print '  # exclude specific VMs'
     print '  exclude=PROD-WinDomainController'
@@ -1356,10 +1511,10 @@ def usage_examples():
     print '  ./VmBackup.py password "DEV mySql"'
     print
     print '  # VM regular expression - which may be more than one VM'
-    print '  ./VmBackup.py password DEV-my*'
+    print '  ./VmBackup.py password DEV-my.*'
     print
     print '  # all VMs in pool'
-    print '  ./VmBackup.py password "*"'
+    print '  ./VmBackup.py password ".*"'
     print
     print 'Alternate form - create-password-file:'
     print '  # create password file from command line password'
@@ -1393,6 +1548,7 @@ if __name__ == '__main__':
     preview = False                 # default
     compress = False                # default
     ignore_extra_keys = False       # default
+    pre_clean = False             # default
 
     # loop through remaining optional args
     arg_range = range(3,len(sys.argv))
@@ -1404,6 +1560,8 @@ if __name__ == '__main__':
             compress = (array[1].lower() == 'true')
         elif array[0].lower() == 'ignore_extra_keys':
             ignore_extra_keys = (array[1].lower() == 'true')
+        elif array[0].lower() == 'pre_clean':
+            pre_clean = (array[1].lower() == 'true')
         else:
             print 'ERROR invalid parm: %s' % sys.argv[arg_ix]
             usage()
@@ -1417,6 +1575,7 @@ if __name__ == '__main__':
     error_regex = False
 
     all_vms = get_all_vms()
+
     # process config file
     if (os.path.exists(cfg_file)):
         # config file exists
@@ -1465,6 +1624,14 @@ if __name__ == '__main__':
         else:
             print 'ERROR - XenAPI authentication error'
             sys.exit(1)
+
+    if preview:
+    # check for duplicate names
+       log('Checking all VMs for duplicate names ...')
+       for vm in all_vms:
+          vmref = [x for x in session.xenapi.VM.get_by_name_label(vm) if not session.xenapi.VM.get_is_a_snapshot(x)]
+          if (len(vmref) > 1):
+             log ("*** ERROR: duplicate VM name found: %s | %s" % (vm, vmref))
 
     if not verify_config_vms_exist():
         # error message(s) printed in verify_config_vms_exist
