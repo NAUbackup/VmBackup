@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.24 July 2019
+# V3.24 June 2018
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
@@ -72,7 +72,7 @@
 # Usage w/ config file for multiple vm backups, where you can specify either vm-export or vdi-export:
 #    ./VmBackup.py <password> <config-file-path>
 
-import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket, threading
+import sys, time, os, datetime, subprocess, re, shutil, XenAPI, smtplib, re, base64, socket, threading, ssl
 from email.MIMEText import MIMEText
 from subprocess import PIPE
 from subprocess import STDOUT
@@ -1612,7 +1612,9 @@ if __name__ == '__main__':
     # acquire a xapi session by logging in
     try:
         username = 'root'
-        session = XenAPI.Session('https://localhost/')
+        session = XenAPI.Session('http://localhost/')
+        # print "session is: %s " % session
+
         session.xenapi.login_with_password(username, password)
         hosts = session.xenapi.host.get_all()
     except XenAPI.Failure, e:

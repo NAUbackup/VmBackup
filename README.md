@@ -18,17 +18,19 @@ Copyright (C) 2019  Northern Arizona University
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
 ## Version History:
- - v3.24 2019/06/21 Fix additional deduplication and exclude issues
+ - v3.25 2019/06/07 Reconcile XenAPI.Session to be compatible with 6.X - 8.X releases,
+         alert users in README file that session.xenapi.VM.get_by_name_label also returns name_labels
+         of templates and hence should be avoided for VMs.
+ - v3.24 2019/04/23 Fix additional deduplication and exclude issues
  - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
          names (potentially conflicting with snapshots),
-         Add pre_clean option to delete oldest backups beforehand,
+         add pre_clean option to delete oldest backups beforehand,
          fix subtle bug in pre-removing non-existing VMs from exclude list,
-         add hostname to email subject line
-
+         add hostname to email subject line.
  - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
          metadata backup that could fail if special characters encountered
  - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
-          python version in XenServer 6.X
+         python version in XenServer 6.X
  - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
          cases, add email retries.
  - v3.1  2016/11/26 Replaced prefix wildcard option with python regex wildcards.
@@ -369,6 +371,8 @@ Notice the besides preview error checking, the VM list scope is also shown.
 	2016-01-29-(11:02:17) -   vm-export: PROD-ubuntu14, DEV-RH6:3, DEV-RH7:3, PROD-WinSvr
 	2016-01-29-(11:02:17) - SUCCESS preview parameters
 
+## Note:
+The API calls to retrieve VM name-labels (such as "session.xenapi.VM.get_by_name_label") will also pull in those of all available VM templates. Hence, do not name any VM the same as any template or there will be a conflict with this utility! 
 
 ### Important Details About Python REGEX Syntax and Configuration File Differences
 
