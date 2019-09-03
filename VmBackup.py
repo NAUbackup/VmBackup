@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 #NAUVmBackup/VmBackup.py
-# V3.24 June 2018
+# V3.25 August 2019
 #
 #@NAUbackup - NAU/ITS Department:
 # Douglas Pace
@@ -35,6 +35,10 @@
 # Title: NAUbackup/VmBackup - a XenServer vm-export & vdi-export Backup Script
 # Package Contents: README.md, VmBackup.py (this file), example.cfg
 # Version History
+# - v3.25 2019/08/07 Reconcile XenAPI.Session to be compatible
+#         with XenServer 6.X - 8.X releases, alert users in README file that
+#         session.xenapi.VM.get_by_name_label also returns name_labels
+#         of templates and hence should be avoided for VMs.
 # - v3.24 2019/04/19 Fix lingering duplicate VM issues
 # - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
 #         names (potentially conflicting with snapshots),
