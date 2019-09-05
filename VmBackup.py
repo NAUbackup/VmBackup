@@ -1624,7 +1624,7 @@ if __name__ == '__main__':
     except XenAPI.Failure, e:
         print e
         if e.details[0] == 'HOST_IS_SLAVE':
-            session = XenAPI.Session('https://' + e.details[1])
+            session = XenAPI.Session('http://' + e.details[1])
             session.xenapi.login_with_password(username, password)
             hosts = session.xenapi.host.get_all()
         else:
