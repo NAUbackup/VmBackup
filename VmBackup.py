@@ -88,6 +88,7 @@ DEFAULT_POOL_DB_BACKUP = 0
 DEFAULT_MAX_BACKUPS = 4
 DEFAULT_VDI_EXPORT_FORMAT = 'raw' # xe vdi-export options: 'raw' or 'vhd'
 DEFAULT_BACKUP_DIR = '/snapshots/BACKUPS'
+DEFAULT_SPACE_THRESHOLD = 20
 ## DEFAULT_BACKUP_DIR = '\snapshots\BACKUPS' # alt for CIFS mounts
 # note - some NAS file servers may fail with ':', so change to your desired format
 BACKUP_DIR_PATTERN = '%s/backup-%04d-%02d-%02d-(%02d:%02d:%02d)'
@@ -102,7 +103,7 @@ MAIL_SMTP_SERVER = 'your-mail-server'
 
 config = {}
 all_vms = []
-expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'status_log', 'vdi_export_format', 'vm-export', 'vdi-export', 'exclude']
+expected_keys = ['pool_db_backup', 'max_backups', 'backup_dir', 'status_log', 'vdi_export_format', 'vm-export', 'vdi-export', 'exclude', 'space_threshold']
 message = ''
 xe_path = '/opt/xensource/bin' 
 
@@ -201,6 +202,19 @@ def main(session):
             error_cnt += 1
             # next vm
             continue
+        
+        # Check remaining disk space for backup directory against threshold
+        log('Checking backup space')
+        backup_space_remaining = get_remaining_space(config['backup_dir'])
+        log('Backup space remaining: {}%'.format(backup_space_remaining))
+        if backup_space_remaining < config['space_threshold']:
+            log('ERROR Space remaining below threshold {}'.format(backup_space_remaining))
+            log('Skipping further backups...')
+            if config_specified:
+                status_log_vdi_export_end(server_name, 'ERROR Space remaining below threshold {}'.format(backup_space_remaining))
+            error_cnt += 1
+            # Skip further backups
+            break
 
         # -----------------------------------------
         # --- begin vdi-export command sequence ---
@@ -334,7 +348,7 @@ def main(session):
         beginTime = datetime.datetime.now()
         this_status = 'success'
 
-        # get values from vdi-export=
+        # get values from vm-export=
         vm_name = get_vm_name(vm_parm)
         vm_max_backups = get_vm_max_backups(vm_parm)
         log('vm-export - vm_name: %s max_backups: %s' % (vm_name, vm_max_backups))
@@ -370,6 +384,19 @@ def main(session):
             error_cnt += 1
             # next vm
             continue
+        
+        # Check remaining disk space for backup directory against threshold
+        log('Checking backup space')
+        backup_space_remaining = get_remaining_space(config['backup_dir'])
+        log('Backup space remaining: {}%'.format(backup_space_remaining))
+        if backup_space_remaining < config['space_threshold']:
+            log('ERROR Space remaining below threshold {}'.format(backup_space_remaining))
+            log('Skipping further backups...')
+            if config_specified:
+                status_log_vm_export_end(server_name, 'ERROR Space remaining below threshold {}'.format(backup_space_remaining))
+            error_cnt += 1
+            # Skip further backups
+            break
 
         # ----------------------------------------
         # --- begin vm-export command sequence ---
@@ -525,6 +552,18 @@ def isInt(s):
         return True
     except ValueError:
         return False
+
+def get_remaining_space(filesystem):
+    cmd = '/bin/df --output=pcent {}'.format(filesystem)
+    fs_info = run_get_lastline(cmd)
+    try:
+        output = fs_info.lstrip()[:-1]
+        percent_used = int(output)
+    except ValueError as e:
+        log('ERROR Unexpectedly returned non-integer; defaulting to 100%')
+        percent_used = int(100)
+    percent_remaining = 100 - percent_used
+    return percent_remaining
 
 def get_vm_max_backups(vm_parm): 
     # get max_backups from optional vm-export=VM-NAME:MAX-BACKUP override
@@ -1024,7 +1063,7 @@ def save_to_config_exclude( key, vm_name):
     global warning_match
     global error_regex
     found_match = False
-    # Fail fast if exclude param given but empty to prevent from exluding all VMs
+    # Fail fast if exclude param given but empty to prevent from excluding all VMs
     if vm_name == "":
         return
     if not isNormalVmName(vm_name) and not isRegExValid( vm_name):
@@ -1330,10 +1369,13 @@ def config_load_defaults():
         config['backup_dir'] = str(DEFAULT_BACKUP_DIR)
     if not 'status_log' in config.keys():
         config['status_log'] = str(DEFAULT_STATUS_LOG)
+    if not 'space_threshold' in config.keys():
+        config['space_threshold'] = str(DEFAULT_SPACE_THRESHOLD)
 
 def config_print():
     log('VmBackup.py running with these settings:')
     log('  backup_dir        = %s' % config['backup_dir'])
+    log('  space_threshold   = {}'.format(config['space_threshold']))
     log('  status_log        = %s' % config['status_log'])
     log('  compress          = %s' % compress)
     log('  max_backups       = %s' % config['max_backups'])
