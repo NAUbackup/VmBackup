@@ -1,4 +1,10 @@
-Copyright (C) 2019  Northern Arizona University
+Copyright (C) 2023  Avi Liani
+
+    This is a fork of NAUbackup/VmBackup.py that was originly developed by
+    The Northern Arizona University at 2019
+
+    The Intention of this form is to make this script python3 compatible,
+    run from client which is not the Xen-Server and also containarized.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -13,45 +19,15 @@ Copyright (C) 2019  Northern Arizona University
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-**Title:** NAUbackup / VmBackup - a XenServer vm-export and vdi-export Backup Script
+**Title:** Avilir / VmBackup - a XenServer vm-export and vdi-export Backup Script
 
 **Package Contents:** README.md (this file), VmBackup.py, example.cfg
 
-## Version History:
- - v3.25 2019/06/07 Reconcile XenAPI.Session to be compatible with 6.X - 8.X releases,
-         alert users in README file that session.xenapi.VM.get_by_name_label also returns name_labels
-         of templates and hence should be avoided for VMs.
- - v3.24 2019/04/23 Fix additional deduplication and exclude issues
- - v3.23 2018/06/13 Add preview check and execution check for duplicate VM
-         names (potentially conflicting with snapshots),
-         add pre_clean option to delete oldest backups beforehand,
-         fix subtle bug in pre-removing non-existing VMs from exclude list,
-         add hostname to email subject line.
- - v3.22 2017/11/11 Add full VM metadata dump to XML file to replace VM
-         metadata backup that could fail if special characters encountered
- - v3.21 2017/09/29 Fix "except socket.error" syntax to also work with older
-         python version in XenServer 6.X
- - v3.2  2017/09/12 Fix wildcard handling and excludes for both VM and VDI
-         cases, add email retries.
- - v3.1  2016/11/26 Replaced prefix wildcard option with python regex wildcards.
- - v3.0  2016/03/04 Added vdi-export and VM prefix wildcards.
- - v2.1  2014/08/22 Added email status option.
- - v2.0  2014/04/09 New VmBackup version supersedes all previous NAU Backup
-         releases.
+## Version History (of This fork):
+ - v0.01 2023/02/25 Make it compatible with python3.
 
-NAUbackup Authors --
-NAU/ITS Department:
- Douglas Pace
- David McArthur
- Duane Booher
- Tobias Kreidl
-
- With gratitude for external contributions made by:
- @philippmk
- @ilium007
- @HqWisen
- @JHag6694
- @lancefogle - Lance Fogle
+Avilir Authors --
+ Avi Liani - <avi@liani.co.il>
 
 **DO NOT RUN THIS SCRIPT UNLESS YOU ARE COMFORTABLE WITH THESE ACTIONS.**
  
@@ -69,52 +45,18 @@ NAU/ITS Department:
  - Optionally, a completion status email can be sent by configuring VmBackup.py variables that are provided in the code, see the Quick Start Checklist section.
 
 
-## Release 3.2 Summary
+## Release 0.01 Summary
 
- - Regex checking for wildcard expansion for includes and excludes fixed and made to work also for VDI in addition to VM cases, including null results.
- - Added better handling of sending email with retries incorporated.
- - Minor documentation fixes in the code.
- - v3.21: Fix "except socket.error" syntax to also work with older python version in XenServer 6.X.
- - v3.22: Add full VM metadata dump to XML file to replace VM metadata backup that could fail if special characters encountered.
-
-## Release 3.1 Summary
-
- - Deprecated **VM prefix wildcard** option for vm-export and vm-import (see regex option below). The syntax was vm-export=PROD* and vdi-export=PRD-with-many-disks* but note that python regex will interpret this _differently_ than a Linux shell "grep" command. More details are given below.
-
- - New **VM regex wildcard** options for vm-export, vdi-export as well as exclude lists. This is an even more powerful feature if you utilize a VM naming convention. Exclude choices are equally applied to all VMs, regardless if intended for vdi-export or vm-export. WARNING: The prefix wildcard will _not_ be interpreted quite the same as before, hence older configuration files will need to be modified! See the regex section containing caveats and examples further below. Individual names deemed to be non-wildcard variations are handled as simple strings, just like before.
-
- - New **regex syntax checking** built in. With the potential complexity of regex operators, the script is parsed for regex errors which are flagged and cause the script to exit. Full parsing and reporting is still performed for the "preview" option.
-
- - New check that the target backup destination folder is writable at the onset.
-
- - New option to configure email to use SMTP START/TLS user account authentication for email delivery.
- 
- - New introduction of the DEFAULT_STATUS_LOG parameter, allowing a user-defined log file path definition.
-
-## Release 3.0 Summary
-
-These new features have been added:
-
- - New configuration option **vdi-export=vm_name** which utilizes the `xe vdi-export` command for just the /dev/xvda boot disk of the given vm_name.
-
-   - **The vdi-export is for special purpose backup situations** - a VM with a /dev/xvda boot disk and several other user data disks xvdb, xvdc, xvdd, ... that are so "large" that it is not practical to vm-export the whole VM. When the vdi-export option is used, then any subsequent restore would require separate a backup and restore product of the user data disks, such as the NetBackup commercial product.
-
-   - The `xe vdi-export` and `xe vdi-import` commands are a relatively new XenServer function and as such the XenServer usage documentation is still evolving. **If you choose to use the vdi-export option, then it is imperative that you verify the restore process with your particular VM's in your environment.** This feature has been available for quite a few releases, however it has only been verified on XenServer 6.5 and the early versions of XenServer Dundee.
-
- - New **VM prefix wildcard** option for both vm-export and vdi-export. This is a powerful feature if you utilize a VM prefix naming convention. Syntax examples include: vm-export=PROD* and vdi-export=PRD-with-many-disks*
- - New configuration **exclude=vm_name** option to filter out VMs from the vm-export and vdi-export VM selection list. Currently, the exclude parameter must specify a specific vm_name and can not be a VM prefix wildcard.
- - New command line **preview** option. This will show all config parameters, VMs have been selected for vm-export and vdi-export. If there are any configuration errors then they will be flagged.
- - New command line **vm-selector** options include vm-export, vdi-export, and VM prefix wildcard options.
- - VM export and VDI export now supports **VM names with spaces**. 
-   - Note all vm-export, vdi-export, exclude and VM-selectors continue to be **case sensitive**.
- - The command line password can now be obscured into a password file. See "VmBackup.py help" on how to use and create the password file.
- - The internal email option is updated to fix some previous errors. See the next section for additional information.
-
+ - python3 compatibility.
 
 ## Quick Start Checklist
 
-1. VmBackup will require lots of file storage. Set up a storage server with an exported VM backup share. By default VmBackup.py uses /snapshots, which can be modified. Frequently NFS is used for the storage server, with many installation and configuration sources available on the web. An optional SMB/CIFS method can be enabled through comments in the script.
-2. For all of the XenServers in a given pool, mount the new /snapshots share. 
+After cloning this repo. install all requirements module by running :
+
+    pip install -r requierments.txt 
+
+1. VmBackup will require lots of file storage. Set up a storage server with an exported VM backup share. By default, VmBackup.py uses /snapshots, which can be modified. Frequently NFS is used for the storage server, with many installation and configuration sources available on the web. An optional SMB/CIFS method can be enabled through comments in the script.
+2. For all the XenServers in a given pool, mount the new /snapshots share. 
 3. Finish creating a share directory structure that meets your needs. Here are the VmBackup.py default subdirectories which can be changed:
    - /snapshots/BACKUPS - this is for all VM backups
    - /snapshots/NAUbackup - this is for the VmBackup.py script, any config files, and the status.log summary file.
@@ -537,11 +479,11 @@ that needs to be able to access the NFS share, for example
 
 On the NFS server, run "exportfs -a" to update the list of NFS exports
 
-On the each of the XenServer hosts, create a corresponding subdirector
-(which can be different from what is exported from the NFS server -- that'
+On each of the XenServer hosts, create a corresponding subdirectory
+(which can be different from what is exported from the NFS server -- that's
 up to you) and add a mount point entry in /etc/fstab with in this case
 the NFS server having the IP address of 192.168.120.200 which might b
-set up via a VLAN or a dedicated NIC that was assigned that addres
+set up via a VLAN or a dedicated NIC that was assigned that address
 (and make sure this is edited in as a single line)
 
 192.168.120.200:/snapshots /snapshots/xspool2 nfs rw,tcp,soft,intr,nfsvers=3
@@ -551,10 +493,10 @@ The directories should all also be owned by root:root and have the same 75
 permissions as with the subdirectory defined on the NFS server side
 Note that if not specified, the rsize/wsize will default to whatever you
 server has defined, but in many cases, performance can be improved b
-increasing those buffere sizes well beyond what might be typical, lik
-32k or 64k. Also not that the NFS version will depend on which versio
+increasing those buffer sizes well beyond what might be typical, lik
+32k or 64k. Also, not that the NFS version will depend on which versio
 of NFS you are running both on your NFS server as well as which versio
-of XenServer you are running. It will fall back to whatever is the defaul
+of XenServer you are running. It will fall back to whatever is the default
 if you leave out the "nfsvers=N" entry altogether
 
 At this point, you can verify the share can be seen by your XenServer host
@@ -563,12 +505,12 @@ showmount -e 192.168.120.20
 
 which should give you an export list that includes your XenServer(s)
 
-Finally, a "mount -a" command should mount the NFS area and a "df" comman
-should show it visble on each of your XenServers
+Finally, a "mount -a" command should mount the NFS area and a "df" command
+should show it visible on each of your XenServers
 
 Make sure to update the NFS mount point definition in any VmBackup
 configuration (.cfg) file(s) you make use of if you do not use the default
-settings. For example, to match the above coniguration, you could override
+settings. For example, to match the above configuration, you could override
 the default by adding the line
 
 backup_dir='/snapshots/xspool2
